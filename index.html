@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Programmazione redazione</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <img src="https://images.collettiva.it/view/acePublic/alias/contentid/NzkwYzBiM2MtYzdhNC00/5/collettiva-logo.webp?h=122&w=1920" alt="Collettiva" class="masthead-image" />
+          <h1 class="sr-only">Programmazione redazione</h1>
+        </div>
+
+        <div class="role-switch" aria-label="Ruolo">
+          <button class="role-button is-active" type="button" data-role="coordinator">Coordinatore</button>
+          <button class="role-button" type="button" data-role="reader">Lettore</button>
+        </div>
+
+        <div class="history-actions" aria-label="Cronologia">
+          <button class="history-button" type="button" id="undoButton">UNDO</button>
+          <button class="history-button" type="button" id="redoButton">REDO</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="control-band" aria-label="Controlli calendario">
+          <div class="week-controls">
+            <button class="icon-button week-jump-target" type="button" id="prevWeek" data-week-jump="-7" aria-label="Settimana precedente">&lt;</button>
+            <div>
+              <p class="eyebrow">Settimana</p>
+              <h2 id="weekTitle">8-14 giugno 2026</h2>
+            </div>
+            <button class="icon-button week-jump-target" type="button" id="nextWeek" data-week-jump="7" aria-label="Settimana successiva">&gt;</button>
+          </div>
+
+        </section>
+
+        <section class="toolbar" aria-label="Viste e filtri">
+          <nav class="tabs" aria-label="Viste">
+            <button class="tab is-active" type="button" data-view="week">Settimana</button>
+            <button class="tab" type="button" data-view="day">Giorno</button>
+            <button class="tab" type="button" data-view="author">Autore</button>
+            <button class="tab" type="button" data-view="live">Dirette</button>
+            <button class="tab" type="button" data-view="appointments">Appuntamenti</button>
+          </nav>
+
+          <div class="filter-row">
+            <label class="search-field">
+              <span>Cerca</span>
+              <input id="searchInput" type="search" placeholder="Titolo o autore" />
+            </label>
+            <label class="select-field">
+              <span>Stato</span>
+              <select id="statusFilter">
+                <option value="all">Tutti</option>
+                <option value="idea">Idea</option>
+                <option value="assegnato">Assegnato</option>
+                <option value="pubblicato">Pubblicato</option>
+                <option value="annullato">Annullato</option>
+              </select>
+            </label>
+            <button class="secondary-button" type="button" id="manageAuthorsButton">Autori</button>
+            <button class="secondary-button" type="button" id="manageBandsButton">Fasce</button>
+            <button class="primary-button" type="button" id="newItemButton">+ Nuovo</button>
+          </div>
+        </section>
+
+        <section class="workspace">
+          <div class="calendar-panel">
+            <div class="day-strip" id="dayStrip" aria-label="Giorni della settimana"></div>
+            <div id="contentView" class="content-view" aria-live="polite"></div>
+          </div>
+
+          <aside class="editor-panel is-hidden" id="editorPanel" aria-label="Gestione contenuto">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Scheda</p>
+                <h2 id="formTitle">Nuovo contenuto</h2>
+              </div>
+              <button class="icon-button" type="button" id="closeEditor" aria-label="Chiudi">x</button>
+            </div>
+
+            <form id="itemForm">
+              <input type="hidden" id="itemId" />
+
+              <label>
+                Titolo
+                <textarea id="itemTitle" required maxlength="260" rows="4" placeholder="Es. Intervista, servizio, nota"></textarea>
+              </label>
+
+              <div class="form-grid">
+                <label>
+                  Data
+                  <input id="itemDate" type="date" required />
+                </label>
+                <label>
+                  Fascia
+                  <select id="itemSlot">
+                  </select>
+                </label>
+              </div>
+
+              <div class="form-grid">
+                <label>
+                  Autore
+                  <select id="itemAuthorSelect">
+                    <option value="">Scrivi a mano</option>
+                  </select>
+                  <input id="itemAuthor" type="text" maxlength="80" placeholder="Nome, se unico" />
+                </label>
+                <label>
+                  Stato
+                  <select id="itemStatus">
+                    <option value="assegnato">Assegnato</option>
+                    <option value="idea">Idea</option>
+                    <option value="pubblicato">Pubblicato</option>
+                    <option value="annullato">Annullato</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="form-grid">
+                <label>
+                  Tag
+                  <input id="itemTag" type="text" maxlength="80" placeholder="Scrivi un tag e premi Invio" />
+                </label>
+                <label>
+                  Tag inseriti
+                  <input id="itemTags" type="text" maxlength="220" placeholder="Separati da virgola" />
+                </label>
+              </div>
+
+              <div class="form-actions">
+                <button class="secondary-button" type="button" id="resetForm">Svuota</button>
+                <button class="primary-button" type="submit">Salva</button>
+              </div>
+            </form>
+          </aside>
+
+          <aside class="editor-panel is-hidden" id="bandPanel" aria-label="Gestione fasce">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Griglia</p>
+                <h2>Fasce</h2>
+              </div>
+              <button class="icon-button" type="button" id="closeBands" aria-label="Chiudi">x</button>
+            </div>
+
+            <form id="bandForm" class="band-form">
+              <label>
+                Nuova fascia
+                <input id="bandName" type="text" maxlength="42" placeholder="Es. APERTURA ORE 20" />
+              </label>
+              <label>
+                Colore
+                <input id="bandColor" type="color" value="#eefaf7" />
+              </label>
+              <button class="primary-button" type="submit">Aggiungi</button>
+            </form>
+
+            <div class="band-list" id="bandList" aria-label="Fasce attive"></div>
+          </aside>
+
+          <aside class="editor-panel is-hidden" id="authorPanel" aria-label="Gestione autori">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Redazione</p>
+                <h2>Autori</h2>
+              </div>
+              <button class="icon-button" type="button" id="closeAuthors" aria-label="Chiudi">x</button>
+            </div>
+
+            <form id="authorForm" class="author-form">
+              <label>
+                Nuovo autore
+                <input id="authorName" type="text" maxlength="80" placeholder="Es. Pallara" />
+              </label>
+              <button class="primary-button" type="submit">Aggiungi</button>
+            </form>
+
+            <div class="author-list" id="authorList" aria-label="Autori disponibili"></div>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <template id="itemCardTemplate">
+      <article class="item-card">
+        <div class="item-card-main">
+          <div class="card-topline">
+            <span class="time-chip"></span>
+            <span class="status-pill"></span>
+          </div>
+          <h3></h3>
+          <p class="meta-line"></p>
+          <div class="tag-row"></div>
+        </div>
+        <div class="card-actions">
+          <button class="mini-button edit-button" type="button">Modifica</button>
+          <button class="mini-button delete-button" type="button">Elimina</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="./app.js?v=authorsbands1"></script></body>
+</html>
