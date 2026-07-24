@@ -5,18 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Programmazione redazione</title>
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./extra.css?v=auth-cloudflare1" />
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <div class="brand">
+        <button class="brand" type="button" id="homeButton" aria-label="Torna alla settimana corrente">
           <img src="https://images.collettiva.it/view/acePublic/alias/contentid/NzkwYzBiM2MtYzdhNC00/5/collettiva-logo.webp?h=122&w=1920" alt="Collettiva" class="masthead-image" />
           <h1 class="sr-only">Programmazione redazione</h1>
-        </div>
+        </button>
 
         <div class="role-switch" aria-label="Ruolo">
-          <button class="role-button is-active" type="button" data-role="coordinator">Coordinatore</button>
-          <button class="role-button" type="button" data-role="reader">Lettore</button>
+          <button class="role-button" type="button" data-role="coordinator">Coordinatore</button>
+          <button class="role-button is-active" type="button" data-role="reader">Lettore</button>
         </div>
 
         <div class="history-actions" aria-label="Cronologia">
@@ -26,25 +27,24 @@
       </header>
 
       <main>
-        <section class="control-band" aria-label="Controlli calendario">
+        <section class="ops-bar" aria-label="Controlli calendario e viste">
           <div class="week-controls">
             <button class="icon-button week-jump-target" type="button" id="prevWeek" data-week-jump="-7" aria-label="Settimana precedente">&lt;</button>
             <div>
               <p class="eyebrow">Settimana</p>
               <h2 id="weekTitle">8-14 giugno 2026</h2>
             </div>
+            <button class="today-button" type="button" id="todayButton">Oggi</button>
             <button class="icon-button week-jump-target" type="button" id="nextWeek" data-week-jump="7" aria-label="Settimana successiva">&gt;</button>
           </div>
 
-        </section>
-
-        <section class="toolbar" aria-label="Viste e filtri">
           <nav class="tabs" aria-label="Viste">
             <button class="tab is-active" type="button" data-view="week">Settimana</button>
             <button class="tab" type="button" data-view="day">Giorno</button>
             <button class="tab" type="button" data-view="author">Autore</button>
-            <button class="tab" type="button" data-view="live">Dirette</button>
             <button class="tab" type="button" data-view="appointments">Appuntamenti</button>
+            <button class="tab" type="button" data-view="meetings">Riunioni</button>
+            <button class="tab" type="button" data-view="live">Dirette</button>
           </nav>
 
           <div class="filter-row">
@@ -52,17 +52,6 @@
               <span>Cerca</span>
               <input id="searchInput" type="search" placeholder="Titolo o autore" />
             </label>
-            <label class="select-field">
-              <span>Stato</span>
-              <select id="statusFilter">
-                <option value="all">Tutti</option>
-                <option value="idea">Idea</option>
-                <option value="assegnato">Assegnato</option>
-                <option value="pubblicato">Pubblicato</option>
-                <option value="annullato">Annullato</option>
-              </select>
-            </label>
-            <button class="secondary-button" type="button" id="manageAuthorsButton">Autori</button>
             <button class="secondary-button" type="button" id="manageBandsButton">Fasce</button>
             <button class="primary-button" type="button" id="newItemButton">+ Nuovo</button>
           </div>
@@ -98,38 +87,19 @@
                 </label>
                 <label>
                   Fascia
-                  <select id="itemSlot">
-                  </select>
+                  <select id="itemSlot"></select>
                 </label>
               </div>
 
-              <div class="form-grid">
-                <label>
-                  Autore
-                  <select id="itemAuthorSelect">
-                    <option value="">Scrivi a mano</option>
-                  </select>
-                  <input id="itemAuthor" type="text" maxlength="80" placeholder="Nome, se unico" />
-                </label>
-                <label>
-                  Stato
-                  <select id="itemStatus">
-                    <option value="assegnato">Assegnato</option>
-                    <option value="idea">Idea</option>
-                    <option value="pubblicato">Pubblicato</option>
-                    <option value="annullato">Annullato</option>
-                  </select>
-                </label>
+              <div class="move-shortcuts is-hidden" id="moveShortcuts" aria-label="Spostamento rapido">
+                <button class="secondary-button" type="button" data-week-shift="-7">&lt; 1 settimana</button>
+                <button class="secondary-button" type="button" data-week-shift="7">1 settimana &gt;</button>
               </div>
 
-              <div class="form-grid">
+              <div class="form-grid form-grid-single">
                 <label>
                   Tag
-                  <input id="itemTag" type="text" maxlength="80" placeholder="Scrivi un tag e premi Invio" />
-                </label>
-                <label>
-                  Tag inseriti
-                  <input id="itemTags" type="text" maxlength="220" placeholder="Separati da virgola" />
+                  <input id="itemTag" type="text" maxlength="220" placeholder="Es. podcast" />
                 </label>
               </div>
 
@@ -163,26 +133,6 @@
 
             <div class="band-list" id="bandList" aria-label="Fasce attive"></div>
           </aside>
-
-          <aside class="editor-panel is-hidden" id="authorPanel" aria-label="Gestione autori">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">Redazione</p>
-                <h2>Autori</h2>
-              </div>
-              <button class="icon-button" type="button" id="closeAuthors" aria-label="Chiudi">x</button>
-            </div>
-
-            <form id="authorForm" class="author-form">
-              <label>
-                Nuovo autore
-                <input id="authorName" type="text" maxlength="80" placeholder="Es. Pallara" />
-              </label>
-              <button class="primary-button" type="submit">Aggiungi</button>
-            </form>
-
-            <div class="author-list" id="authorList" aria-label="Autori disponibili"></div>
-          </aside>
         </section>
       </main>
     </div>
@@ -190,20 +140,56 @@
     <template id="itemCardTemplate">
       <article class="item-card">
         <div class="item-card-main">
-          <div class="card-topline">
-            <span class="time-chip"></span>
-            <span class="status-pill"></span>
-          </div>
+          <div class="card-context"></div>
           <h3></h3>
-          <p class="meta-line"></p>
           <div class="tag-row"></div>
         </div>
         <div class="card-actions">
-          <button class="mini-button edit-button" type="button">Modifica</button>
-          <button class="mini-button delete-button" type="button">Elimina</button>
+          <button class="action-menu-button" type="button" aria-label="Azioni contenuto" aria-expanded="false">...</button>
+          <div class="card-action-menu" hidden>
+            <button class="mini-button move-button" type="button">Sposta</button>
+            <button class="mini-button edit-button" type="button">Modifica</button>
+            <button class="mini-button delete-button" type="button">Elimina</button>
+          </div>
         </div>
       </article>
     </template>
 
-    <script src="./app.js?v=authorsbands1"></script></body>
+    <div class="auth-modal is-hidden" id="authModal" aria-hidden="true">
+      <form class="auth-card" id="authForm" aria-label="Accesso coordinatore">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Accesso</p>
+            <h2>Coordinatore</h2>
+          </div>
+          <button class="icon-button" type="button" id="closeAuth" aria-label="Chiudi">x</button>
+        </div>
+
+        <label>
+          Email
+          <input id="authEmail" type="email" autocomplete="username" required placeholder="nome@collettiva.it" />
+        </label>
+
+        <label>
+          Password
+          <input id="authPassword" type="password" autocomplete="current-password" required placeholder="Password coordinatore" />
+        </label>
+
+        <p class="auth-error" id="authError" role="alert"></p>
+
+        <div class="form-actions">
+          <button class="secondary-button" type="button" id="cancelAuth">Annulla</button>
+          <button class="primary-button" type="submit">Entra</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="./app-1.js?v=cloudflare1"></script>
+    <script src="./app-2.js?v=cloudflare1"></script>
+    <script src="./app-3.js?v=cloudflare1"></script>
+    <script src="./app-4.js?v=cloudflare1"></script>
+    <script src="./app-5.js?v=cloudflare1"></script>
+  </body>
 </html>
