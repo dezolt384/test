@@ -1,5 +1,9 @@
 # Programmazione redazione
 
-Copia statica della demo Sites "Programmazione redazione", preparata per pubblicazione con GitHub Pages.
+Copia statica aggiornata dell'app di programmazione redazione, pubblicata tramite Cloudflare Pages.
 
-Per pubblicarla: Settings -> Pages -> Build and deployment -> Deploy from a branch -> main / root.
+## Deploy
+
+Cloudflare Pages e' collegato al branch `main` del repository `dezolt384/test`.
+
+Ultimo trigger deploy: 2026-07-24 15:05 Europe/Rome.
