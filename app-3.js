@@ -418,4 +418,3 @@ clearAuthSession();
 return null;
 }
 return state.authSession;
-}
