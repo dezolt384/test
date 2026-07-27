@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Programmazione redazione</title>
     <link rel="stylesheet" href="./styles.css?v=auth-lock1" />
-    <link rel="stylesheet" href="./extra.css?v=nav-groups1" />
+    <link rel="stylesheet" href="./extra.css?v=band-schedules1" />
     <link rel="stylesheet" href="./team.css?v=mobile-mosaic1" />
   </head>
   <body>
@@ -128,6 +128,7 @@
               <div>
                 <p class="eyebrow">Griglia</p>
                 <h2>Fasce</h2>
+                <p class="panel-context" id="bandContext"></p>
               </div>
               <button class="icon-button" type="button" id="closeBands" aria-label="Chiudi">x</button>
             </div>
@@ -145,6 +146,7 @@
             </form>
 
             <div class="band-list" id="bandList" aria-label="Fasce attive"></div>
+            <p class="panel-note" id="bandHistoryNote"></p>
           </aside>
         </section>
       </main>
@@ -197,10 +199,44 @@
       </form>
     </div>
 
+    <div class="auth-modal is-hidden" id="bandRemovalModal" aria-hidden="true">
+      <form class="auth-card band-removal-card" id="bandRemovalForm" aria-label="Rimuovi fascia dalla programmazione">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Programmazione</p>
+            <h2>Rimuovi fascia</h2>
+          </div>
+          <button class="icon-button" type="button" id="closeBandRemoval" aria-label="Chiudi">x</button>
+        </div>
+
+        <p class="removal-summary" id="bandRemovalSummary"></p>
+
+        <label>
+          Applica la modifica
+          <select id="bandRemovalWhen">
+            <option value="next">Dalla prossima settimana</option>
+            <option value="current">Da questa settimana</option>
+          </select>
+        </label>
+
+        <label>
+          Sposta i contenuti coinvolti in
+          <select id="bandRemovalTarget"></select>
+        </label>
+
+        <p class="panel-note" id="bandRemovalImpact"></p>
+
+        <div class="form-actions">
+          <button class="secondary-button" type="button" id="cancelBandRemoval">Annulla</button>
+          <button class="primary-button" type="submit" id="confirmBandRemoval">Conferma</button>
+        </div>
+      </form>
+    </div>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script src="./team.js?v=team-mosaic1"></script>
-    <script src="./loader.js?v=cloudflare4"></script>
+    <script src="./loader.js?v=band-schedules1"></script>
     <script src="./mobile.js?v=mobile-default1"></script>
   </body>
 </html>
