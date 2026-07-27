@@ -1,7 +1,6 @@
 const items = filteredItems().filter((item) => item.date === iso && item.slot === slot).sort(compareItems);
-if (items.length) {
 items.forEach((item) => cell.appendChild(createCard(item)));
-} else {
+if (state.role === "coordinator") {
 cell.appendChild(createEmptySlot(iso, slot));
 }
 row.appendChild(cell);
@@ -211,6 +210,9 @@ const edit = fragment.querySelector(".edit-button");
 const del = fragment.querySelector(".delete-button");
 const menuButton = fragment.querySelector(".action-menu-button");
 const menu = fragment.querySelector(".card-action-menu");
+const orderControls = fragment.querySelector(".card-order-controls");
+const moveUp = fragment.querySelector(".move-up-button");
+const moveDown = fragment.querySelector(".move-down-button");
 
 card.dataset.status = item.status;
 card.dataset.itemId = item.id;
@@ -222,6 +224,13 @@ context.appendChild(createDateChip(item.date));
 }
 const titleInfo = renderCardTitleRich(fragment.querySelector("h3"), item.title);
 (item.tags || []).forEach((tag) => tags.appendChild(createTag(tag)));
+
+const groupItems = getOrderedGroupItems(item.date, item.slot);
+const groupIndex = groupItems.findIndex((entry) => entry.id === item.id);
+const canReorder = state.role === "coordinator" && groupItems.length > 1;
+orderControls.hidden = !canReorder;
+moveUp.disabled = groupIndex <= 0;
+moveDown.disabled = groupIndex < 0 || groupIndex >= groupItems.length - 1;
 
 card.addEventListener("pointerdown", (event) => startPointerDrag(event, item.id, card));
 card.addEventListener("dragstart", (event) => startDrag(event, item.id));
@@ -242,6 +251,8 @@ del.addEventListener("click", () => {
 closeActionMenus();
 deleteItem(item.id);
 });
+moveUp.addEventListener("click", () => moveItemByOffset(item.id, -1));
+moveDown.addEventListener("click", () => moveItemByOffset(item.id, 1));
 
 return fragment;
 }
@@ -298,19 +309,33 @@ clearDropTargets();
 
 function clearDropTargets() {
 document.querySelectorAll(".slot-cell.is-drop-target").forEach((cell) => cell.classList.remove("is-drop-target"));
+document.querySelectorAll(".item-card.is-drop-before, .item-card.is-drop-after").forEach((card) => {
+card.classList.remove("is-drop-before", "is-drop-after");
+});
 }
 
-function moveItemTo(itemId, date, slot) {
+function moveItemTo(itemId, date, slot, options = {}) {
 const item = state.items.find((entry) => entry.id === itemId);
 if (!item) return;
-if (item.date === date && item.slot === slot) return;
+const targetItem = options.targetItemId
+? state.items.find((entry) => entry.id === options.targetItemId && entry.date === date && entry.slot === slot)
+: null;
+if (item.date === date && item.slot === slot && (!targetItem || targetItem.id === item.id)) return;
 
 pushHistory();
 item.date = date;
 item.slot = slot;
 applyBandFlags(item, slot);
+const destinationItems = getOrderedGroupItems(date, slot).filter((entry) => entry.id !== item.id);
+let insertionIndex = destinationItems.length;
+if (targetItem) {
+const targetIndex = destinationItems.findIndex((entry) => entry.id === targetItem.id);
+if (targetIndex >= 0) insertionIndex = targetIndex + (options.placement === "after" ? 1 : 0);
+}
+destinationItems.splice(insertionIndex, 0, item);
+setGroupOrder(destinationItems);
 commitState();
-showToast("Contenuto spostato");
+showToast(targetItem ? "Ordine aggiornato" : "Contenuto spostato");
 }
 
 function startPointerDrag(event, itemId, card) {
@@ -325,6 +350,8 @@ startX: event.clientX,
 startY: event.clientY,
 active: false,
 overCell: null,
+overItemId: "",
+placement: "after",
 overWeekJump: null,
 weekJumpTimer: null,
 ghost: null,
@@ -355,6 +382,7 @@ updateDragGhost(drag, event);
 const hovered = document.elementFromPoint(event.clientX, event.clientY);
 const weekJump = hovered?.closest(".week-jump-target");
 const target = hovered?.closest(".slot-cell");
+const targetCard = hovered?.closest(".item-card");
 clearDropTargets();
 clearWeekJumpTargets();
 
@@ -365,9 +393,19 @@ drag.overCell = null;
 cancelWeekJump(drag);
 target.classList.add("is-drop-target");
 drag.overCell = target;
+if (targetCard && targetCard.dataset.itemId !== drag.itemId) {
+const bounds = targetCard.getBoundingClientRect();
+drag.placement = event.clientY < bounds.top + bounds.height / 2 ? "before" : "after";
+drag.overItemId = targetCard.dataset.itemId;
+targetCard.classList.add(drag.placement === "before" ? "is-drop-before" : "is-drop-after");
+} else {
+drag.overItemId = "";
+drag.placement = "after";
+}
 } else {
 cancelWeekJump(drag);
 drag.overCell = null;
+drag.overItemId = "";
 }
 }
 
@@ -396,7 +434,10 @@ return;
 }
 if (!target) return;
 
-moveItemTo(drag.itemId, target.dataset.date, target.dataset.slot);
+moveItemTo(drag.itemId, target.dataset.date, target.dataset.slot, {
+targetItemId: drag.overItemId,
+placement: drag.placement,
+});
 }
 
 function moveItemByWeek(itemId, delta) {
@@ -405,6 +446,7 @@ if (!item) return;
 pushHistory();
 item.date = toISO(addDays(parseDate(item.date), delta));
 applyBandFlags(item, item.slot);
+item.order = getNextItemOrder(item.date, item.slot, item.id);
 commitState({ keepWeek: true });
 changeWeek(delta);
 showToast("Contenuto spostato");
