@@ -150,7 +150,7 @@ return Boolean(
 
 function applyRemoteState(remote, options = {}) {
 state.items = normalizeItems(Array.isArray(remote.items) && remote.items.length ? remote.items : state.items);
-state.bands = normalizeBands(Array.isArray(remote.bands) && remote.bands.length ? remote.bands : state.bands);
+state.bands = normalizeBands(Array.isArray(remote.bands) && remote.bands.length ? remote.bands : state.bands, state.items);
 state.authors = normalizeAuthors(Array.isArray(remote.authors) && remote.authors.length ? remote.authors : state.authors);
 state.remoteUpdatedAt = remote.updated_at || "";
 saveItems();
@@ -229,22 +229,33 @@ function getBands() {
 return state?.bands?.length ? state.bands : defaultBands;
 }
 
-function getActiveBands() {
-return getBands().filter((band) => !band.archived);
+function getManagementWeekStart() {
+const currentWeek = startOfWeek(initialDate);
+return state.currentWeekStart < currentWeek ? currentWeek : state.currentWeekStart;
 }
 
-function getArchivedBandsForWeek(weekDays) {
-const weekSet = new Set(weekDays.map((day) => toISO(day)));
-const archivedIds = new Set(
-filteredItems()
-.filter((item) => weekSet.has(item.date))
-.map((item) => item.slot),
-);
-return getBands().filter((band) => band.archived && archivedIds.has(band.id));
+function isBandActiveOnDate(band, date) {
+if (!band || !date) return false;
+const iso = typeof date === "string" ? date : toISO(date);
+if (band.activeFrom && iso < band.activeFrom) return false;
+if (band.activeUntil && iso > band.activeUntil) return false;
+return true;
+}
+
+function getBandsForDate(date) {
+return getBands().filter((band) => isBandActiveOnDate(band, date));
+}
+
+function getActiveBands(date = toISO(getManagementWeekStart())) {
+return getBandsForDate(date);
+}
+
+function findBand(id) {
+return getBands().find((band) => band.id === id) || null;
 }
 
 function getBand(id) {
-return getBands().find((band) => band.id === id) || getBands()[0] || defaultBands[0];
+return findBand(id) || getBands()[0] || defaultBands[0];
 }
 
 function getBandIndex(id) {
@@ -260,29 +271,35 @@ element.style.setProperty("--slot-ink", colors.ink);
 }
 
 function applyBandFlags(item, slot) {
-item.live = slot === "dirette";
-item.appointment = slot === "appuntamento";
+const kind = findBand(slot)?.kind || slot;
+item.live = kind === "dirette";
+item.appointment = kind === "appuntamento";
 }
 
 function renderBandOptions() {
 const current = elements.itemSlot.value;
+const date = elements.itemDate.value || state.selectedDate;
 elements.itemSlot.replaceChildren();
-const currentBand = getBand(current);
-const bands = getActiveBands();
-if (currentBand?.archived && currentBand.id === current) bands.push(currentBand);
+const currentBand = findBand(current);
+const bands = [...getActiveBands(date)];
+const existing = state.items.find((item) => item.id === elements.itemId.value);
+const canKeepHistoricalBand = existing && existing.date === date && existing.slot === current;
+if (canKeepHistoricalBand && currentBand && !bands.some((band) => band.id === currentBand.id)) bands.push(currentBand);
 bands.forEach((band) => {
 const option = document.createElement("option");
 option.value = band.id;
-option.textContent = band.archived ? `${band.title} (archiviata)` : band.title;
+option.textContent = band.title;
 elements.itemSlot.appendChild(option);
 });
-elements.itemSlot.value = bands.some((band) => band.id === current) ? current : getActiveBands()[0]?.id || getBands()[0]?.id || "";
+elements.itemSlot.value = bands.some((band) => band.id === current) ? current : bands[0]?.id || "";
 }
 
 function updateBand(bandId, title, color) {
 const index = state.bands.findIndex((band) => band.id === bandId);
 if (index < 0) return;
 const current = state.bands[index];
+const effectiveDate = toISO(getManagementWeekStart());
+const hasHistoricalItems = state.items.some((item) => item.slot === bandId && item.date < effectiveDate);
 const next = { ...current, title };
 const parts = splitBandTitle(title);
 next.top = parts.top;
@@ -293,14 +310,62 @@ next.bg = color;
 next.line = shadeColor(color, -18);
 next.ink = shadeColor(color, -46);
 }
+if (hasHistoricalItems && isBandActiveOnDate(current, effectiveDate)) {
+const historical = {
+...current,
+activeUntil: toISO(addDays(parseDate(effectiveDate), -1)),
+retired: true,
+};
+const replacement = {
+...next,
+id: createUniqueBandId(title),
+activeFrom: effectiveDate,
+retired: false,
+};
+state.items.forEach((item) => {
+if (item.slot === bandId && item.date >= effectiveDate) item.slot = replacement.id;
+});
+state.bands.splice(index, 1, historical, replacement);
+} else {
 state.bands.splice(index, 1, next);
+}
 commitState();
 }
 
 function renderBandManager() {
 elements.bandList.replaceChildren();
-renderBandSection("Attive", getActiveBands(), true);
-renderBandSection("Archiviate", getBands().filter((band) => band.archived), false);
+const effectiveWeek = getManagementWeekStart();
+const effectiveIso = toISO(effectiveWeek);
+const activeBands = getActiveBands(effectiveIso);
+elements.bandContext.textContent = `In uso dal ${formatFullDate(effectiveWeek)}`;
+elements.bandHistoryNote.textContent = `${getBands().filter((band) => !isBandActiveOnDate(band, effectiveIso)).length} fasce storiche conservate automaticamente`;
+renderBandSection("Fasce della settimana", activeBands, true);
+renderUnassignedBandWarnings(effectiveIso);
+}
+
+function renderUnassignedBandWarnings(effectiveIso) {
+const orphaned = state.items.filter((item) => item.date >= effectiveIso && !isBandActiveOnDate(findBand(item.slot), item.date));
+const groups = groupBy(orphaned, (item) => item.slot);
+const bandIds = Object.keys(groups);
+if (!bandIds.length) return;
+
+const section = document.createElement("section");
+section.className = "band-section band-warning-section";
+section.innerHTML = `<div class="band-section-title"><span>Da ricollocare</span><span>${orphaned.length}</span></div>`;
+bandIds.forEach((bandId) => {
+const band = findBand(bandId) || { title: bandId || "Fascia non disponibile" };
+const row = document.createElement("div");
+row.className = "band-row band-warning-row";
+row.innerHTML = `<span class="band-marker"></span><div class="band-row-text"><strong>${escapeHtml(band.title)}</strong><small>${groups[bandId].length} contenuti</small></div>`;
+const action = document.createElement("button");
+action.type = "button";
+action.className = "mini-button";
+action.textContent = "Ricolloca";
+action.addEventListener("click", () => openBandRemoval(bandId, { forceCurrent: true }));
+row.appendChild(action);
+section.appendChild(row);
+});
+elements.bandList.appendChild(section);
 }
 
 function renderBandSection(title, bands, canReorder) {
@@ -311,9 +376,7 @@ section.innerHTML = `<div class="band-section-title"><span>${escapeHtml(title)}<
 bands.forEach((band, index) => {
 const row = document.createElement("div");
 row.className = "band-row";
-row.classList.toggle("is-archived-band", Boolean(band.archived));
 row.dataset.bandId = band.id;
-row.dataset.archived = band.archived ? "true" : "false";
 applyBandStyle(row, band, index);
 if (canReorder) row.addEventListener("pointerdown", (event) => startBandPointerDrag(event, band.id, row));
 
@@ -327,9 +390,8 @@ text.innerHTML = `<strong>${escapeHtml(band.title)}</strong>`;
 const toggle = document.createElement("button");
 toggle.type = "button";
 toggle.className = "mini-button";
-toggle.textContent = band.archived ? "Riattiva" : "Archivia";
-toggle.disabled = !band.archived && getActiveBands().length <= 1;
-toggle.addEventListener("click", () => toggleBandArchived(band.id, !band.archived));
+toggle.textContent = "Rimuovi";
+toggle.addEventListener("click", () => openBandRemoval(band.id));
 
 const edit = document.createElement("button");
 edit.type = "button";
@@ -386,7 +448,7 @@ const hovered = document.elementFromPoint(event.clientX, event.clientY);
 const target = hovered?.closest(".band-row");
 clearBandDropTargets();
 
-if (target && target.dataset.archived !== "true" && target.dataset.bandId && target.dataset.bandId !== drag.bandId) {
+if (target && target.dataset.bandId && target.dataset.bandId !== drag.bandId) {
 drag.overRow = target;
 drag.dropPosition = getBandDropPosition(event, target);
 target.classList.add(`is-band-drop-${drag.dropPosition}`);
