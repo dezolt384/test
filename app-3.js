@@ -96,10 +96,9 @@ container.appendChild(author);
 }
 
 function createEmptySlot(date, slot) {
-if (state.role === "coordinator") {
 const button = document.createElement("button");
 button.type = "button";
-button.className = "empty-slot";
+button.className = "empty-slot cell-add-button";
 button.textContent = "+ Aggiungi";
 button.addEventListener("click", () =>
 openEditor({
@@ -111,11 +110,6 @@ appointment: slot === "appuntamento",
 }),
 );
 return button;
-}
-
-const empty = document.createElement("div");
-empty.className = "empty-slot is-readonly";
-return empty;
 }
 
 function createTag(label) {
@@ -275,7 +269,50 @@ return state.items.filter((item) => item.date === date).length;
 }
 
 function compareItems(a, b) {
-return a.date.localeCompare(b.date) || getBandIndex(a.slot) - getBandIndex(b.slot) || a.title.localeCompare(b.title);
+return (
+a.date.localeCompare(b.date) ||
+getBandIndex(a.slot) - getBandIndex(b.slot) ||
+getItemOrder(a) - getItemOrder(b) ||
+a.title.localeCompare(b.title)
+);
+}
+
+function getItemOrder(item) {
+const order = Number(item?.order);
+return Number.isFinite(order) ? order : 0;
+}
+
+function getOrderedGroupItems(date, slot, excludeId = "") {
+return state.items
+.filter((item) => item.date === date && item.slot === slot && item.id !== excludeId)
+.sort((a, b) => getItemOrder(a) - getItemOrder(b) || a.title.localeCompare(b.title));
+}
+
+function getNextItemOrder(date, slot, excludeId = "") {
+const items = getOrderedGroupItems(date, slot, excludeId);
+return items.length ? Math.max(...items.map(getItemOrder)) + 1 : 0;
+}
+
+function setGroupOrder(items) {
+items.forEach((item, index) => {
+item.order = index;
+});
+}
+
+function moveItemByOffset(itemId, offset) {
+const item = state.items.find((entry) => entry.id === itemId);
+if (!item) return;
+const items = getOrderedGroupItems(item.date, item.slot);
+const currentIndex = items.findIndex((entry) => entry.id === itemId);
+const nextIndex = currentIndex + offset;
+if (currentIndex < 0 || nextIndex < 0 || nextIndex >= items.length) return;
+
+pushHistory();
+items.splice(currentIndex, 1);
+items.splice(nextIndex, 0, item);
+setGroupOrder(items);
+commitState();
+showToast("Ordine aggiornato");
 }
 
 function groupBy(items, getKey) {
