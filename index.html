@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Programmazione redazione</title>
     <link rel="stylesheet" href="./styles.css?v=auth-lock1" />
-    <link rel="stylesheet" href="./extra.css?v=toolbar-overflow2" />
+    <link rel="stylesheet" href="./extra.css?v=item-order1" />
     <link rel="stylesheet" href="./team.css?v=mobile-mosaic1" />
   </head>
   <body>
@@ -160,6 +160,10 @@
           <div class="tag-row"></div>
         </div>
         <div class="card-actions">
+          <div class="card-order-controls" hidden aria-label="Ordina contenuto">
+            <button class="order-button move-up-button" type="button" aria-label="Sposta prima" title="Sposta prima">&uarr;</button>
+            <button class="order-button move-down-button" type="button" aria-label="Sposta dopo" title="Sposta dopo">&darr;</button>
+          </div>
           <button class="action-menu-button" type="button" aria-label="Azioni contenuto" aria-expanded="false">...</button>
           <div class="card-action-menu" hidden>
             <button class="mini-button move-button" type="button">Sposta</button>
@@ -236,7 +240,7 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script src="./team.js?v=team-mosaic1"></script>
-    <script src="./loader.js?v=band-schedules1"></script>
+    <script src="./loader.js?v=item-order1"></script>
     <script src="./mobile.js?v=mobile-default1"></script>
   </body>
 </html>
