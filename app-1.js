@@ -299,6 +299,11 @@ button.addEventListener("click", () => shiftEditorDate(Number(button.dataset.wee
 elements.form.addEventListener("submit", (event) => {
 event.preventDefault();
 pushHistory();
+const existingItem = state.items.find((item) => item.id === elements.itemId.value);
+const keepsPosition =
+existingItem &&
+existingItem.date === elements.itemDate.value &&
+existingItem.slot === elements.itemSlot.value;
 const formItem = {
 id: elements.itemId.value || createId(),
 title: elements.itemTitle.value.trim(),
@@ -309,6 +314,7 @@ status: getExistingStatus(elements.itemId.value),
 tags: parseTags(elements.itemTag.value),
 live: false,
 appointment: false,
+order: keepsPosition ? getItemOrder(existingItem) : getNextItemOrder(elements.itemDate.value, elements.itemSlot.value),
 };
 applyBandFlags(formItem, formItem.slot);
 
