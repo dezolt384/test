@@ -2,7 +2,7 @@ const items = filteredItems().filter((item) => item.date === iso && item.slot ==
 if (items.length) {
 items.forEach((item) => cell.appendChild(createCard(item)));
 } else {
-cell.appendChild(band.archived ? createReadonlySlot() : createEmptySlot(iso, slot));
+cell.appendChild(createEmptySlot(iso, slot));
 }
 row.appendChild(cell);
 });
@@ -10,8 +10,31 @@ row.appendChild(cell);
 grid.appendChild(row);
 });
 
+const unassignedPanel = createUnassignedWeekPanel(weekDays);
 elements.contentView.innerHTML = "";
+if (unassignedPanel) elements.contentView.appendChild(unassignedPanel);
 elements.contentView.appendChild(grid);
+}
+
+function createUnassignedWeekPanel(weekDays) {
+const activeIds = new Set(getBandsForDate(toISO(weekDays[0])).map((band) => band.id));
+const weekSet = new Set(weekDays.map((day) => toISO(day)));
+const items = filteredItems().filter((item) => weekSet.has(item.date) && !activeIds.has(item.slot));
+if (!items.length) return null;
+
+const panel = document.createElement("section");
+panel.className = "unassigned-items-panel";
+panel.innerHTML = `
+<div class="unassigned-items-heading">
+  <div><span>Fuori griglia</span><strong>Contenuti da ricollocare</strong></div>
+  <em>${items.length}</em>
+</div>
+`;
+const list = document.createElement("div");
+list.className = "unassigned-items-list";
+items.sort(compareItems).forEach((item) => list.appendChild(createCard(item, { showDate: true })));
+panel.appendChild(list);
+return panel;
 }
 
 function renderDay() {
@@ -193,7 +216,7 @@ card.dataset.status = item.status;
 card.dataset.itemId = item.id;
 card.draggable = false;
 card.classList.toggle("is-draggable", canDragItems());
-context.appendChild(createBandChip(item.slot));
+context.appendChild(createBandChip(item.slot, item.date));
 if (options.showDate) {
 context.appendChild(createDateChip(item.date));
 }
