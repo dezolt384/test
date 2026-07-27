@@ -45,6 +45,7 @@ if (state.bandEditId) {
 updateBand(state.bandEditId, title, elements.bandColor.value);
 } else {
 const band = createBand(title, state.bands.length, elements.bandColor.value);
+band.activeFrom = toISO(getManagementWeekStart());
 state.bands.push(band);
 commitState();
 }
@@ -64,14 +65,81 @@ elements.bandColor.value = rgbToHex(band.bg || "#eefaf7");
 elements.bandName.focus({ preventScroll: true });
 }
 
-function toggleBandArchived(bandId, archived) {
+function openBandRemoval(bandId, options = {}) {
+const band = getBand(bandId);
+if (!band) return;
+state.pendingBandRemoval = { bandId, forceCurrent: Boolean(options.forceCurrent) };
+elements.bandRemovalWhen.value = options.forceCurrent ? "current" : "next";
+elements.bandRemovalWhen.disabled = Boolean(options.forceCurrent);
+elements.bandRemovalSummary.textContent = band.title;
+elements.bandRemovalModal.classList.remove("is-hidden");
+elements.bandRemovalModal.setAttribute("aria-hidden", "false");
+updateBandRemovalDialog();
+}
+
+function closeBandRemovalModal() {
+state.pendingBandRemoval = null;
+elements.bandRemovalWhen.disabled = false;
+elements.bandRemovalModal.classList.add("is-hidden");
+elements.bandRemovalModal.setAttribute("aria-hidden", "true");
+}
+
+function getBandRemovalEffectiveDate() {
+const base = getManagementWeekStart();
+return toISO(elements.bandRemovalWhen.value === "current" ? base : addDays(base, 7));
+}
+
+function updateBandRemovalDialog() {
+const bandId = state.pendingBandRemoval?.bandId;
+if (!bandId) return;
+const effectiveDate = getBandRemovalEffectiveDate();
+const destinations = getBandsForDate(effectiveDate).filter((band) => band.id !== bandId);
+const currentTarget = elements.bandRemovalTarget.value;
+elements.bandRemovalTarget.replaceChildren();
+destinations.forEach((band) => {
+const option = document.createElement("option");
+option.value = band.id;
+option.textContent = band.title;
+elements.bandRemovalTarget.appendChild(option);
+});
+elements.bandRemovalTarget.value = destinations.some((band) => band.id === currentTarget) ? currentTarget : destinations[0]?.id || "";
+const affected = state.items.filter((item) => item.slot === bandId && item.date >= effectiveDate);
+const submit = elements.bandRemovalForm.querySelector('[type="submit"]');
+submit.disabled = !destinations.length;
+if (!destinations.length) {
+elements.bandRemovalImpact.textContent = "Prima aggiungi un'altra fascia: serve una destinazione per conservare i contenuti.";
+return;
+}
+elements.bandRemovalImpact.textContent = affected.length
+? `${affected.length} contenuti saranno spostati. Lo storico precedente non verrà modificato.`
+: "Nessun contenuto da spostare. Lo storico precedente non verrà modificato.";
+}
+
+function confirmBandRemoval() {
+const bandId = state.pendingBandRemoval?.bandId;
+const targetId = elements.bandRemovalTarget.value;
+if (!bandId || !targetId || bandId === targetId) return;
 const index = state.bands.findIndex((band) => band.id === bandId);
 if (index < 0) return;
-if (archived && getActiveBands().length <= 1) return;
+const effectiveDate = getBandRemovalEffectiveDate();
+const activeUntil = toISO(addDays(parseDate(effectiveDate), -1));
+const current = state.bands[index];
+const closesActivePeriod = isBandActiveOnDate(current, effectiveDate);
 
 pushHistory();
-state.bands.splice(index, 1, { ...state.bands[index], archived });
+state.items.forEach((item) => {
+if (item.slot !== bandId || item.date < effectiveDate) return;
+item.slot = targetId;
+applyBandFlags(item, targetId);
+});
+state.bands.splice(index, 1, {
+...current,
+activeUntil: closesActivePeriod ? activeUntil : current.activeUntil,
+retired: true,
+});
+closeBandRemovalModal();
 commitState();
+showToast("Fascia rimossa; contenuti conservati");
 }
 
 function getAuthors() {
@@ -88,14 +156,28 @@ const colors = colorValue
 ? { bg: colorValue, line: shadeColor(colorValue, -18), ink: shadeColor(colorValue, -46) }
 : customBandPalette[index % customBandPalette.length];
 return {
-id: createBandId(title),
+id: createUniqueBandId(title),
 title,
 top: parts.top,
 bottom: parts.bottom,
 chip: toChipLabel(title),
-archived: false,
+kind: null,
+activeFrom: null,
+activeUntil: null,
+retired: false,
 ...colors,
 };
+}
+
+function createUniqueBandId(title) {
+const base = createBandId(title);
+let id = base;
+let suffix = 2;
+while (state.bands.some((band) => band.id === id)) {
+id = `${base}-${suffix}`;
+suffix += 1;
+}
+return id;
 }
 
 function splitBandTitle(title) {
@@ -250,13 +332,13 @@ render();
 if (!options.skipHistory) updateHistoryButtons();
 }
 
-function loadBands() {
+function loadBands(items = []) {
 try {
 const saved = localStorage.getItem(BAND_STORAGE_KEY);
-if (!saved) return defaultBands.map((band) => ({ ...band }));
-return normalizeBands(JSON.parse(saved));
+if (!saved) return normalizeBands(defaultBands, items);
+return normalizeBands(JSON.parse(saved), items);
 } catch {
-return defaultBands.map((band) => ({ ...band }));
+return normalizeBands(defaultBands, items);
 }
 }
 
@@ -264,7 +346,7 @@ function saveBands() {
 localStorage.setItem(BAND_STORAGE_KEY, JSON.stringify(state.bands));
 }
 
-function normalizeBands(bands) {
+function normalizeBands(bands, items = []) {
 const source = Array.isArray(bands) && bands.length ? bands : defaultBands;
 const seen = new Set();
 const normalized = source.map((band, index) => {
@@ -286,22 +368,45 @@ title
 );
 if (seen.has(id)) id = `${id}-${index + 1}`;
 seen.add(id);
+const legacyWindow = merged.archived ? inferLegacyBandWindow(id, items) : null;
 return {
 id,
 title,
 top: merged.top || parts.top,
 bottom: merged.bottom || parts.bottom,
 chip: merged.chip || toChipLabel(title),
-archived: Boolean(merged.archived),
+kind: merged.kind || (["dirette", "appuntamento"].includes(id) ? id : null),
+activeFrom: merged.activeFrom || legacyWindow?.activeFrom || null,
+activeUntil: merged.activeUntil || legacyWindow?.activeUntil || null,
+retired: Boolean(merged.retired || merged.archived),
 bg: colors.bg,
 line: colors.line,
 ink: colors.ink,
 };
 });
 
-return normalized.some((band) => !band.archived)
+const currentDate = toISO(startOfWeek(initialDate));
+return normalized.some((band) => isBandActiveOnDate(band, currentDate))
 ? normalized
-: normalized.map((band, index) => (index === 0 ? { ...band, archived: false } : band));
+: normalized.map((band, index) => (index === 0 ? { ...band, activeFrom: null, activeUntil: null, retired: false } : band));
+}
+
+function inferLegacyBandWindow(bandId, items) {
+const currentWeek = toISO(startOfWeek(initialDate));
+const historicalDates = (Array.isArray(items) ? items : [])
+.filter((item) => item.slot === bandId && item.date < currentWeek)
+.map((item) => item.date)
+.sort();
+if (!historicalDates.length) {
+return {
+activeFrom: currentWeek,
+activeUntil: toISO(addDays(parseDate(currentWeek), -1)),
+};
+}
+return {
+activeFrom: toISO(startOfWeek(parseDate(historicalDates[0]))),
+activeUntil: toISO(addDays(startOfWeek(parseDate(historicalDates.at(-1))), 6)),
+};
 }
 
 function splitInlineAuthor(value) {
