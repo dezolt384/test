@@ -356,6 +356,8 @@ button.type = "button";
 button.className = "day-chip";
 button.classList.toggle("is-active", state.selectedDate === iso);
 button.classList.toggle("is-today", isToday(day));
+button.classList.toggle("is-nonworking-day", isWeekendOrHoliday(day));
+button.title = getItalianHolidayName(day) || (day.getDay() === 6 ? "Sabato" : day.getDay() === 0 ? "Domenica" : "");
 button.innerHTML = `<strong>${dayNames[index]} ${day.getDate()}</strong><span>${countForDate(iso)}</span>`;
 button.addEventListener("click", () => {
 state.selectedDate = iso;
@@ -383,6 +385,8 @@ dayButton.type = "button";
 dayButton.className = "week-day-head";
 dayButton.classList.toggle("is-active", state.selectedDate === iso);
 dayButton.classList.toggle("is-today", isToday(day));
+dayButton.classList.toggle("is-nonworking-day", isWeekendOrHoliday(day));
+dayButton.title = getItalianHolidayName(day) || (day.getDay() === 6 ? "Sabato" : day.getDay() === 0 ? "Domenica" : "");
 dayButton.innerHTML = `<strong>${dayNames[index]} ${day.getDate()}</strong><span>${countForDate(iso)}</span>`;
 dayButton.addEventListener("click", () => {
 state.selectedDate = iso;
