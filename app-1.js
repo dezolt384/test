@@ -315,6 +315,9 @@ tags: parseTags(elements.itemTag.value),
 live: false,
 appointment: false,
 order: keepsPosition ? getItemOrder(existingItem) : getNextItemOrder(elements.itemDate.value, elements.itemSlot.value),
+_version: existingItem?._version || 0,
+_updatedAt: existingItem?._updatedAt || "",
+_updatedBy: existingItem?._updatedBy || "",
 };
 applyBandFlags(formItem, formItem.slot);
 
