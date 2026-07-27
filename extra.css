@@ -4,7 +4,16 @@
 .card-title-text,
 .card-title-list,
 .card-title-list li {
-  overflow-wrap: break-word;
+  overflow-wrap: normal;
   word-break: normal;
   hyphens: none;
+}
+
+.reader-mode .item-card-main {
+  padding-right: 0;
+}
+
+.slot-cell .card-title-text,
+.slot-cell .card-title-list {
+  font-size: 13px;
 }
