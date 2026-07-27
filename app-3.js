@@ -118,13 +118,6 @@ empty.className = "empty-slot is-readonly";
 return empty;
 }
 
-function createReadonlySlot() {
-const empty = document.createElement("div");
-empty.className = "empty-slot is-readonly";
-empty.textContent = "Archivio";
-return empty;
-}
-
 function createTag(label) {
 const tag = document.createElement("span");
 tag.className = "tag";
@@ -132,11 +125,13 @@ tag.textContent = label;
 return tag;
 }
 
-function createBandChip(slot) {
-const band = getBand(slot);
+function createBandChip(slot, date) {
+const band = findBand(slot);
 const chip = document.createElement("span");
 chip.className = "band-chip";
-chip.textContent = band.title;
+const active = isBandActiveOnDate(band, date);
+chip.classList.toggle("is-unassigned", !active);
+chip.textContent = active ? band.title : `Da ricollocare · ${band?.title || slot || "Fascia non disponibile"}`;
 return chip;
 }
 
@@ -163,11 +158,11 @@ return item.slot === "riunioni" || tags.includes("riunioni") || tags.includes("r
 }
 
 function isLiveItem(item) {
-return item.live || item.slot === "dirette";
+return item.live || item.slot === "dirette" || findBand(item.slot)?.kind === "dirette";
 }
 
 function isAppointmentItem(item) {
-return item.appointment || item.slot === "appuntamento";
+return item.appointment || item.slot === "appuntamento" || findBand(item.slot)?.kind === "appuntamento";
 }
 
 function getExistingStatus(itemId) {
@@ -200,6 +195,7 @@ if (isAllSidePanelsClosed()) elements.body.classList.remove("editor-open");
 function shiftEditorDate(delta) {
 const baseDate = elements.itemDate.value || state.selectedDate;
 elements.itemDate.value = toISO(addDays(parseDate(baseDate), delta));
+renderBandOptions();
 }
 
 function openBandManager() {
@@ -224,7 +220,7 @@ function resetForm() {
 elements.form.reset();
 elements.itemId.value = "";
 elements.itemDate.value = state.selectedDate;
-elements.itemSlot.value = getActiveBands()[0]?.id || getBands()[0].id;
+renderBandOptions();
 elements.itemTag.value = "";
 elements.formTitle.textContent = "Nuovo contenuto";
 }
