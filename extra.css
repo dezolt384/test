@@ -17,3 +17,109 @@
 .slot-cell .card-title-list {
   font-size: 13px;
 }
+
+.tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+}
+
+.tab-group {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.tab-group-calendar {
+  background: #e8f7f4;
+  border-color: #c4e6df;
+}
+
+.tab-group-content {
+  background: #eef2f7;
+}
+
+.tab-group-label {
+  padding: 0 7px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 850;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.tab-group-calendar .tab-group-label {
+  color: #0d6f67;
+}
+
+.tab-group-content .tab-group-label {
+  color: #9b302a;
+}
+
+.tab-group-buttons {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.tab-group .tab {
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.tab-group .tab.is-active {
+  border-color: var(--line);
+  background: #fff;
+  box-shadow: 0 2px 7px rgba(21, 32, 51, .08);
+}
+
+.tab-group-calendar .tab.is-active {
+  color: #0d6f67;
+  border-bottom-color: #168f84;
+}
+
+.tab-group-content .tab.is-active {
+  color: #9b302a;
+  border-bottom-color: #d83a30;
+}
+
+@media (max-width: 820px) {
+  .tabs {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .tab-group-calendar .tab-group-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tab-group-content {
+    overflow: hidden;
+  }
+
+  .tab-group-content .tab-group-buttons {
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .tab-group-content .tab-group-buttons::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab-group-content .tab {
+    flex: 0 0 auto;
+  }
+}
