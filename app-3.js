@@ -178,11 +178,13 @@ renderBandOptions();
 elements.itemTag.value = formatTags(item.tags || []);
 if (options.mode === "move") elements.itemDate.focus({ preventScroll: true });
 else elements.itemTitle.focus({ preventScroll: true });
+setEditingPresence(item.id || "");
 }
 
 function closeEditor() {
 elements.editorPanel.classList.add("is-hidden");
 elements.moveShortcuts.classList.add("is-hidden");
+setEditingPresence("");
 if (isAllSidePanelsClosed()) elements.body.classList.remove("editor-open");
 }
 
@@ -429,6 +431,7 @@ const session = await signInCoordinator(email, password);
 saveAuthSession(session);
 closeAuthModal();
 applyRole("coordinator");
+await handleCoordinatorSessionChanged();
 showToast("Accesso coordinatore attivo");
 } catch (error) {
 console.warn("Accesso coordinatore fallito", error);
