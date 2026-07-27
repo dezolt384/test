@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Programmazione redazione</title>
     <link rel="stylesheet" href="./styles.css?v=auth-lock1" />
-    <link rel="stylesheet" href="./extra.css?v=auth-cloudflare1" />
+    <link rel="stylesheet" href="./extra.css?v=nav-groups1" />
     <link rel="stylesheet" href="./team.css?v=mobile-mosaic1" />
   </head>
   <body>
@@ -40,12 +40,23 @@
           </div>
 
           <nav class="tabs" aria-label="Viste">
-            <button class="tab is-active" type="button" data-view="week">Settimana</button>
-            <button class="tab" type="button" data-view="day">Giorno</button>
-            <button class="tab" type="button" data-view="author">Autore</button>
-            <button class="tab" type="button" data-view="appointments">Appuntamenti</button>
-            <button class="tab" type="button" data-view="meetings">Riunioni</button>
-            <button class="tab" type="button" data-view="live">Dirette</button>
+            <div class="tab-group tab-group-calendar" role="group" aria-label="Calendario">
+              <span class="tab-group-label">Calendario</span>
+              <div class="tab-group-buttons">
+                <button class="tab is-active" type="button" data-view="week">Settimana</button>
+                <button class="tab" type="button" data-view="day">Giorno</button>
+              </div>
+            </div>
+
+            <div class="tab-group tab-group-content" role="group" aria-label="Contenuti">
+              <span class="tab-group-label">Contenuti</span>
+              <div class="tab-group-buttons">
+                <button class="tab" type="button" data-view="author">Autore</button>
+                <button class="tab" type="button" data-view="appointments">Appuntamenti</button>
+                <button class="tab" type="button" data-view="meetings">Riunioni</button>
+                <button class="tab" type="button" data-view="live">Dirette</button>
+              </div>
+            </div>
           </nav>
 
           <div class="filter-row">
