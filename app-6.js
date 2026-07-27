@@ -31,6 +31,7 @@ if (!isRemoteConfigured()) return;
 ensureCollaborationState();
 setSyncStatus("loading", "Collegamento...");
 try {
+await ensureCoordinatorSession();
 const remote = await fetchConcurrentState();
 state.remoteMode = "rows";
 applyConcurrentState(remote, { announce: true });
@@ -182,6 +183,7 @@ if (!state.remoteLoaded || state.remoteSaving || state.pendingConflict) return;
 if (state.remoteDirty && !options.force) return;
 if (!isAllSidePanelsClosed() && !options.force) return;
 try {
+await ensureCoordinatorSession();
 const remote = await fetchRemoteState();
 if (state.remoteMode === "rows") {
 applyConcurrentState(remote);
@@ -205,10 +207,49 @@ window.clearTimeout(state.remoteSaveTimer);
 state.remoteSaveTimer = window.setTimeout(() => saveRemoteState(), COLLAB_SAVE_DELAY);
 }
 
+function getValidAuthSession() {
+if (!state.authSession?.access_token) return null;
+if (state.authSession.expires_at && Date.now() > state.authSession.expires_at && !state.authSession.refresh_token) {
+clearAuthSession();
+return null;
+}
+return state.authSession;
+}
+
+async function ensureCoordinatorSession() {
+const session = state.authSession;
+if (!session?.access_token) return null;
+if (!session.expires_at || Date.now() < session.expires_at) return session;
+if (!session.refresh_token) {
+clearAuthSession();
+return null;
+}
+try {
+const response = await fetch(`${SUPABASE_AUTH_URL}/token?grant_type=refresh_token`, {
+method: "POST",
+headers: {
+apikey: SUPABASE_KEY,
+Authorization: `Bearer ${SUPABASE_KEY}`,
+"Content-Type": "application/json",
+},
+body: JSON.stringify({ refresh_token: session.refresh_token }),
+});
+if (!response.ok) throw new Error(`Rinnovo sessione fallito: ${response.status}`);
+saveAuthSession(await response.json());
+const token = state.authSession?.access_token;
+if (token) state.realtimeClient?.realtime?.setAuth(token);
+return state.authSession;
+} catch (error) {
+console.warn("Sessione coordinatore scaduta", error);
+clearAuthSession();
+return null;
+}
+}
+
 async function saveRemoteState(options = {}) {
 if (!isRemoteConfigured()) return;
 if (!options.immediate && !state.remoteLoaded) return;
-if (!isCoordinatorUnlocked()) {
+if (!(await ensureCoordinatorSession())) {
 applyRole("reader");
 showToast("Accedi come coordinatore per salvare");
 return;
