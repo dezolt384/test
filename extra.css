@@ -13,6 +13,52 @@
   padding-right: 0;
 }
 
+.cell-add-button {
+  min-height: 34px;
+  margin-top: 8px;
+  border-radius: 7px;
+  font-size: 12px;
+  opacity: 1;
+}
+
+.item-card.is-drop-before {
+  box-shadow: inset 0 4px 0 var(--blue);
+}
+
+.item-card.is-drop-after {
+  box-shadow: inset 0 -4px 0 var(--blue);
+}
+
+.card-order-controls {
+  display: none;
+}
+
+.order-button {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: #fff;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.order-button:first-child {
+  border-radius: 7px 0 0 7px;
+}
+
+.order-button:last-child {
+  margin-left: -1px;
+  border-radius: 0 7px 7px 0;
+}
+
+.order-button:disabled {
+  color: #aab3c0;
+  background: #f2f4f7;
+}
+
 .slot-cell .card-title-text,
 .slot-cell .card-title-list {
   font-size: 13px;
@@ -225,6 +271,21 @@
 
   .tab-group-content .tab {
     flex: 0 0 auto;
+  }
+
+  .card-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .card-order-controls:not([hidden]) {
+    display: inline-flex;
+  }
+
+  body:not(.reader-mode) .item-card-main {
+    padding-right: 104px;
   }
 }
 
