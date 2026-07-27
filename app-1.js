@@ -161,11 +161,14 @@ const monthNames = [
 const initialDate = new Date();
 initialDate.setHours(12, 0, 0, 0);
 
+const loadedItems = loadItems();
+
 const state = {
-items: loadItems(),
-bands: loadBands(),
+items: loadedItems,
+bands: loadBands(loadedItems),
 authors: loadAuthors(),
 bandEditId: "",
+pendingBandRemoval: null,
 undoStack: [],
 redoStack: [],
 toastTimer: 0,
@@ -215,7 +218,17 @@ bandForm: document.querySelector("#bandForm"),
 bandName: document.querySelector("#bandName"),
 bandColor: document.querySelector("#bandColor"),
 bandList: document.querySelector("#bandList"),
+bandContext: document.querySelector("#bandContext"),
+bandHistoryNote: document.querySelector("#bandHistoryNote"),
 closeBands: document.querySelector("#closeBands"),
+bandRemovalModal: document.querySelector("#bandRemovalModal"),
+bandRemovalForm: document.querySelector("#bandRemovalForm"),
+bandRemovalSummary: document.querySelector("#bandRemovalSummary"),
+bandRemovalWhen: document.querySelector("#bandRemovalWhen"),
+bandRemovalTarget: document.querySelector("#bandRemovalTarget"),
+bandRemovalImpact: document.querySelector("#bandRemovalImpact"),
+closeBandRemoval: document.querySelector("#closeBandRemoval"),
+cancelBandRemoval: document.querySelector("#cancelBandRemoval"),
 toast: document.querySelector("#toast"),
 authModal: document.querySelector("#authModal"),
 authForm: document.querySelector("#authForm"),
@@ -261,6 +274,13 @@ submitCoordinatorLogin();
 });
 elements.closeAuth.addEventListener("click", () => closeAuthModal());
 elements.cancelAuth.addEventListener("click", () => closeAuthModal());
+elements.closeBandRemoval.addEventListener("click", () => closeBandRemovalModal());
+elements.cancelBandRemoval.addEventListener("click", () => closeBandRemovalModal());
+elements.bandRemovalWhen.addEventListener("change", () => updateBandRemovalDialog());
+elements.bandRemovalForm.addEventListener("submit", (event) => {
+event.preventDefault();
+confirmBandRemoval();
+});
 
 elements.searchInput.addEventListener("input", (event) => {
 state.query = event.target.value.trim().toLowerCase();
@@ -270,6 +290,7 @@ render();
 elements.itemTag.addEventListener("change", () => {
 elements.itemTag.value = parseTags(elements.itemTag.value).join(", ");
 });
+elements.itemDate.addEventListener("change", () => renderBandOptions());
 
 document.querySelectorAll("[data-week-shift]").forEach((button) => {
 button.addEventListener("click", () => shiftEditorDate(Number(button.dataset.weekShift)));
@@ -398,19 +419,18 @@ header.appendChild(dayButton);
 });
 grid.appendChild(header);
 
-const visibleBands = [...getActiveBands(), ...getArchivedBandsForWeek(weekDays)];
+const visibleBands = getBandsForDate(toISO(weekDays[0]));
 visibleBands.forEach((band, bandIndex) => {
 const slot = band.id;
 const row = document.createElement("section");
 row.className = "week-row";
-row.classList.toggle("is-archived-band", Boolean(band.archived));
 row.dataset.slot = slot;
 applyBandStyle(row, band, bandIndex);
 
 const label = document.createElement("div");
 label.className = "slot-label";
 label.dataset.slot = slot;
-label.innerHTML = `<span>${escapeHtml(band.archived ? "ARCHIVIO" : band.top)}</span><strong>${escapeHtml(band.bottom)}</strong>`;
+label.innerHTML = `<span>${escapeHtml(band.top)}</span><strong>${escapeHtml(band.bottom)}</strong>`;
 row.appendChild(label);
 
 weekDays.forEach((day, index) => {
@@ -420,4 +440,4 @@ cell.className = "slot-cell";
 cell.dataset.slot = slot;
 cell.dataset.date = iso;
 cell.innerHTML = `<p class="mobile-day-label">${dayNames[index]} ${day.getDate()} ${monthNames[day.getMonth()]}</p>`;
-if (!band.archived) setupDropTarget(cell, iso, slot);
+setupDropTarget(cell, iso, slot);
