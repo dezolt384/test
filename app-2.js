@@ -207,6 +207,7 @@ const context = fragment.querySelector(".card-context");
 const tags = fragment.querySelector(".tag-row");
 const move = fragment.querySelector(".move-button");
 const edit = fragment.querySelector(".edit-button");
+const history = fragment.querySelector(".history-detail-button");
 const del = fragment.querySelector(".delete-button");
 const menuButton = fragment.querySelector(".action-menu-button");
 const menu = fragment.querySelector(".card-action-menu");
@@ -246,6 +247,10 @@ openEditor(item, { mode: "move" });
 edit.addEventListener("click", () => {
 closeActionMenus();
 openEditor(item);
+});
+history.addEventListener("click", () => {
+closeActionMenus();
+openItemHistory(item);
 });
 del.addEventListener("click", () => {
 closeActionMenus();
