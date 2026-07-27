@@ -289,6 +289,157 @@
   }
 }
 
+/* Collaborative editing */
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 10px;
+  color: #5f6d82;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sync-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #8e99a9;
+}
+
+.sync-status[data-status="online"] .sync-status-dot {
+  background: #168f84;
+}
+
+.sync-status[data-status="saving"] .sync-status-dot,
+.sync-status[data-status="loading"] .sync-status-dot {
+  background: #b56b11;
+}
+
+.sync-status[data-status="conflict"] .sync-status-dot,
+.sync-status[data-status="offline"] .sync-status-dot {
+  background: #c64236;
+}
+
+.reader-mode .coordinator-only-control {
+  display: none;
+}
+
+.presence-notice {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid #e0a53d;
+  border-left: 4px solid #b56b11;
+  border-radius: 6px;
+  background: #fff7e8;
+  color: #5f3a08;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.conflict-card {
+  width: min(620px, calc(100vw - 32px));
+}
+
+.conflict-card > p {
+  margin: 4px 0 22px;
+  color: #5f6d82;
+  line-height: 1.45;
+}
+
+.conflict-actions {
+  align-items: stretch;
+}
+
+.conflict-actions button {
+  min-height: 50px;
+  white-space: normal;
+}
+
+.records-card {
+  width: min(820px, calc(100vw - 32px));
+  max-height: min(760px, calc(100vh - 40px));
+  overflow: auto;
+}
+
+.records-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.record-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px;
+  border: 1px solid #d8e1ed;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.record-row > div {
+  min-width: 0;
+}
+
+.record-row strong,
+.record-row span,
+.record-row small {
+  display: block;
+}
+
+.record-row strong {
+  color: #152137;
+  overflow-wrap: anywhere;
+}
+
+.record-row span {
+  margin-top: 5px;
+  color: #66748a;
+  font-size: 13px;
+}
+
+.record-row small {
+  margin-top: 8px;
+  color: #35445b;
+  font-size: 13px;
+}
+
+.history-record {
+  align-items: flex-start;
+}
+
+.compact-empty {
+  min-height: 100px;
+}
+
+@media (max-width: 820px) {
+  .sync-status {
+    order: 4;
+    width: 100%;
+    min-height: 28px;
+    justify-content: center;
+    padding: 0;
+    font-size: 12px;
+  }
+
+  .record-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .record-row button {
+    width: 100%;
+  }
+
+  .conflict-actions {
+    flex-direction: column;
+  }
+}
+
 .panel-context,
 .panel-note {
   margin: 4px 0 0;
