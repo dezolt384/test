@@ -474,15 +474,22 @@ return unique;
 }
 
 function normalizeItems(items) {
-return items.map((item) => {
-if (item.live && item.slot === "appuntamento") {
-return { ...item, slot: "dirette", appointment: false };
-}
+const groupCounters = new Map();
+return (Array.isArray(items) ? items : []).map((sourceItem) => {
+const item = sourceItem.live && sourceItem.slot === "appuntamento"
+? { ...sourceItem, slot: "dirette", appointment: false }
+: sourceItem;
+const groupKey = `${item.date || ""}|${item.slot || ""}`;
+const fallbackOrder = groupCounters.get(groupKey) || 0;
+const savedOrder = Number(item.order);
+const order = Number.isFinite(savedOrder) ? savedOrder : fallbackOrder;
+groupCounters.set(groupKey, Math.max(fallbackOrder + 1, order + 1));
 return {
 ...item,
 tags: Array.isArray(item.tags) ? item.tags : parseTags(item.tags || ""),
 live: Boolean(item.live || item.slot === "dirette"),
 appointment: Boolean(item.appointment || item.slot === "appuntamento"),
+order,
 };
 });
 }
