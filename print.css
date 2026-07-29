@@ -6,8 +6,18 @@
   min-width: 44px;
   height: 44px;
   padding: 0;
-  font-size: 25px;
   line-height: 1;
+}
+
+.reader-print-button svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .print-sheet {
