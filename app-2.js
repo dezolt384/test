@@ -68,6 +68,7 @@ Object.keys(groups)
 .forEach((author) => {
 const allItems = itemsForAuthor(author).sort(compareItems);
 const nextItem = groups[author].sort(compareItems)[0];
+const totalLabel = state.fullArchiveLoaded ? `${allItems.length} totali` : "Apri archivio";
 const row = document.createElement("button");
 row.type = "button";
 row.className = "author-index-row";
@@ -75,7 +76,7 @@ row.innerHTML = `
 <span class="author-index-name">${escapeHtml(author)}</span>
 <span class="author-index-meta">${groups[author].length} questa settimana</span>
 <span class="author-index-next">${escapeHtml(formatShortDate(parseDate(nextItem.date)))} · ${escapeHtml(nextItem.title.split("\n")[0])}</span>
-<span class="author-index-total">${allItems.length} totali</span>
+<span class="author-index-total">${totalLabel}</span>
 `;
 row.addEventListener("click", () => {
 state.authorDetail = author;
@@ -93,6 +94,17 @@ renderEmpty("Nessun contenuto per autore");
 }
 
 function renderAuthorArchive(author) {
+if (state.remoteMode === "rows" && !state.fullArchiveLoaded) {
+renderEmpty("Caricamento archivio autore...");
+ensureFullArchiveLoaded().then(() => {
+invalidateItemIndexes();
+render();
+}).catch((error) => {
+console.warn("Archivio autore non disponibile", error);
+renderEmpty("Archivio autore non disponibile");
+});
+return;
+}
 const items = itemsForAuthor(author).sort((a, b) => b.date.localeCompare(a.date) || compareItems(a, b));
 if (!items.length) {
 state.authorDetail = "";
@@ -112,16 +124,38 @@ render();
 wrapper.appendChild(header);
 
 const groups = groupBy(items, (item) => item.date.slice(0, 7));
-Object.keys(groups).sort().reverse().forEach((monthKey) => {
+const monthBlocks = new Map();
+let renderedCount = 0;
+const batchSize = 60;
+const loadMore = document.createElement("button");
+loadMore.type = "button";
+loadMore.className = "secondary-button archive-load-more";
+
+function getAuthorMonthList(monthKey) {
+if (monthBlocks.has(monthKey)) return monthBlocks.get(monthKey);
 const block = document.createElement("section");
 block.className = "group-block";
 block.innerHTML = `<div class="group-header"><span>${escapeHtml(formatMonth(monthKey))}</span><span>${groups[monthKey].length}</span></div>`;
 const list = document.createElement("div");
 list.className = "group-items";
-groups[monthKey].sort((a, b) => b.date.localeCompare(a.date) || compareItems(a, b)).forEach((item) => list.appendChild(createCard(item, { showDate: true })));
 block.appendChild(list);
-wrapper.appendChild(block);
-});
+wrapper.insertBefore(block, loadMore);
+monthBlocks.set(monthKey, list);
+return list;
+}
+
+function appendAuthorBatch() {
+const nextItems = items.slice(renderedCount, renderedCount + batchSize);
+nextItems.forEach((item) => getAuthorMonthList(item.date.slice(0, 7)).appendChild(createCard(item, { showDate: true })));
+renderedCount += nextItems.length;
+const remaining = items.length - renderedCount;
+loadMore.hidden = remaining <= 0;
+loadMore.textContent = remaining > 0 ? `Carica altri · ${remaining} rimanenti` : "";
+}
+
+loadMore.addEventListener("click", appendAuthorBatch);
+wrapper.appendChild(loadMore);
+appendAuthorBatch();
 
 elements.contentView.innerHTML = "";
 elements.contentView.appendChild(wrapper);
@@ -396,12 +430,14 @@ card.classList.remove("is-drop-before", "is-drop-after");
 function moveItemTo(itemId, date, slot, options = {}) {
 const item = state.items.find((entry) => entry.id === itemId);
 if (!item) return;
+const sourceItems = getOrderedGroupItems(item.date, item.slot);
 const targetItem = options.targetItemId
 ? state.items.find((entry) => entry.id === options.targetItemId && entry.date === date && entry.slot === slot)
 : null;
 if (item.date === date && item.slot === slot && (!targetItem || targetItem.id === item.id)) return;
 
-pushHistory();
+const targetItemsBeforeMove = getOrderedGroupItems(date, slot);
+pushHistory({ itemIds: [...sourceItems, ...targetItemsBeforeMove].map((entry) => entry.id) });
 item.date = date;
 item.slot = slot;
 applyBandFlags(item, slot);
@@ -522,7 +558,7 @@ placement: drag.placement,
 function moveItemByWeek(itemId, delta) {
 const item = state.items.find((entry) => entry.id === itemId);
 if (!item) return;
-pushHistory();
+pushHistory({ itemIds: [item.id] });
 item.date = toISO(addDays(parseDate(item.date), delta));
 applyBandFlags(item, item.slot);
 item.order = getNextItemOrder(item.date, item.slot, item.id);

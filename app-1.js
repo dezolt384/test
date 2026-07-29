@@ -181,8 +181,7 @@ confirmBandRemoval();
 });
 
 elements.searchInput.addEventListener("input", (event) => {
-state.query = event.target.value.trim().toLowerCase();
-render();
+scheduleArchiveSearch(event.target.value);
 });
 
 elements.itemTag.addEventListener("change", () => {
@@ -196,7 +195,6 @@ button.addEventListener("click", () => shiftEditorDate(Number(button.dataset.wee
 
 elements.form.addEventListener("submit", (event) => {
 event.preventDefault();
-pushHistory();
 const existingItem = state.items.find((item) => item.id === elements.itemId.value);
 const keepsPosition =
 existingItem &&
@@ -218,6 +216,7 @@ _updatedAt: existingItem?._updatedAt || "",
 _updatedBy: existingItem?._updatedBy || "",
 };
 applyBandFlags(formItem, formItem.slot);
+pushHistory({ itemIds: [formItem.id] });
 
 const existingIndex = state.items.findIndex((item) => item.id === formItem.id);
 if (existingIndex >= 0) {
@@ -236,7 +235,6 @@ showToast(existingIndex >= 0 ? "Contenuto aggiornato" : "Contenuto salvato");
 
 elements.bandForm.addEventListener("submit", (event) => {
 event.preventDefault();
-pushHistory();
 addBand(elements.bandName.value);
 });
 

@@ -158,9 +158,10 @@ const cellItems = currentItemsByCell.get(cellKey) || [];
 cellItems.push(item);
 currentItemsByCell.set(cellKey, cellItems);
 });
-currentAvailableYears = [...new Set(
-state.items.map((item) => Number(item.date?.slice(0, 4))).filter(Number.isFinite),
-)].sort((a, b) => a - b);
+currentAvailableYears = [...new Set([
+...(Array.isArray(state.availableYears) ? state.availableYears : []),
+...state.items.map((item) => Number(item.date?.slice(0, 4))).filter(Number.isFinite),
+])].sort((a, b) => a - b);
 preparedItemDataRevision = itemDataRevision;
 preparedItemQuery = state.query;
 }
@@ -257,7 +258,7 @@ elements.formTitle.textContent = "Nuovo contenuto";
 }
 
 function deleteItem(id) {
-pushHistory();
+pushHistory({ itemIds: [id] });
 state.items = state.items.filter((item) => item.id !== id);
 commitState();
 showToast("Contenuto eliminato");
@@ -374,7 +375,7 @@ const currentIndex = items.findIndex((entry) => entry.id === itemId);
 const nextIndex = currentIndex + offset;
 if (currentIndex < 0 || nextIndex < 0 || nextIndex >= items.length) return;
 
-pushHistory();
+pushHistory({ itemIds: items.map((entry) => entry.id) });
 items.splice(currentIndex, 1);
 items.splice(nextIndex, 0, item);
 setGroupOrder(items);

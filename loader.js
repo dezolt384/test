@@ -1,5 +1,5 @@
 (async function loadRedazioneApp() {
-  const parts = ["app-1.js", "app-2.js", "app-3.js", "app-4.js", "app-5.js", "app-6.js"];
+  const parts = ["app-1.js", "app-2.js", "app-3.js", "app-4.js", "app-5.js", "app-6.js", "app-7.js"];
 
   function showLoadError(error, code) {
     console.error("Impossibile caricare l'app", error);
@@ -20,7 +20,7 @@
 
   try {
     const fetched = await Promise.all(parts.map(async (path) => {
-      const response = await fetch(`./${path}?v=hot-path1`, { cache: "no-store" });
+      const response = await fetch(`./${path}?v=hot-path2`, { cache: "no-store" });
       if (!response.ok) throw new Error(`${path}: ${response.status}`);
       return response.text();
     }));

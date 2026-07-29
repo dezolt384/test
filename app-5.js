@@ -23,7 +23,7 @@ row.classList.remove("is-band-drop-before", "is-band-drop-after");
 function reorderBand(sourceId, targetId, position = "before") {
 if (!sourceId || !targetId || sourceId === targetId) return;
 
-pushHistory();
+pushHistory({ config: true });
 const next = [...state.bands];
 const sourceIndex = next.findIndex((band) => band.id === sourceId);
 if (sourceIndex < 0) return;
@@ -46,6 +46,7 @@ updateBand(state.bandEditId, title, elements.bandColor.value);
 } else {
 const band = createBand(title, state.bands.length, elements.bandColor.value);
 band.activeFrom = toISO(getManagementWeekStart());
+pushHistory({ config: true });
 state.bands.push(band);
 commitState();
 }
@@ -126,7 +127,10 @@ const activeUntil = toISO(addDays(parseDate(effectiveDate), -1));
 const current = state.bands[index];
 const closesActivePeriod = isBandActiveOnDate(current, effectiveDate);
 
-pushHistory();
+const affectedIds = state.items
+.filter((item) => item.slot === bandId && item.date >= effectiveDate)
+.map((item) => item.id);
+pushHistory({ config: true, itemIds: affectedIds });
 state.items.forEach((item) => {
 if (item.slot !== bandId || item.date < effectiveDate) return;
 item.slot = targetId;

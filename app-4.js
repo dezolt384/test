@@ -307,6 +307,10 @@ if (index < 0) return;
 const current = state.bands[index];
 const effectiveDate = toISO(getManagementWeekStart());
 const hasHistoricalItems = state.items.some((item) => item.slot === bandId && item.date < effectiveDate);
+const affectedIds = state.items
+.filter((item) => item.slot === bandId && item.date >= effectiveDate)
+.map((item) => item.id);
+pushHistory({ config: true, itemIds: affectedIds });
 const next = { ...current, title };
 const parts = splitBandTitle(title);
 next.top = parts.top;
