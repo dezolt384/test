@@ -2,6 +2,7 @@ const COLLAB_SAVE_DELAY = 500;
 const COLLAB_REFRESH_DELAY = 180;
 const COLLAB_TRASH_DAYS = 30;
 const CONTENT_PAGE_SIZE = 1000;
+const COLLAB_FULL_REFRESH_INTERVAL = 300000;
 
 function ensureCollaborationState() {
 if (state.collaborationReady) return;
@@ -39,7 +40,7 @@ applyConcurrentState(remote, { announce: true });
 state.remoteLoaded = true;
 setSyncStatus("online", "Aggiornato");
 startRealtimeCollaboration();
-window.setInterval(refreshRemoteState, REMOTE_SYNC_INTERVAL);
+window.setInterval(refreshRemoteState, COLLAB_FULL_REFRESH_INTERVAL);
 } catch (error) {
 if (error.concurrentUnavailable) {
 await initLegacyRemoteState();
@@ -88,12 +89,17 @@ rows: Array.isArray(rows) ? rows : [],
 }
 
 async function fetchAllContentRows(headers) {
-const rows = [];
-for (let from = 0; ; from += CONTENT_PAGE_SIZE) {
+async function fetchPage(from, count = false) {
 const to = from + CONTENT_PAGE_SIZE - 1;
 const response = await fetch(
 `${SUPABASE_REST_URL}/contents?select=*&order=content_date.asc,slot.asc,sort_order.asc,id.asc`,
-{ headers: { ...headers, Range: `${from}-${to}` } },
+{
+headers: {
+...headers,
+Range: `${from}-${to}`,
+...(count ? { Prefer: "count=exact" } : {}),
+},
+},
 );
 if ([404, 406].includes(response.status)) {
 const error = new Error("Schema concorrente non ancora attivo");
@@ -103,9 +109,26 @@ throw error;
 if (!response.ok) throw new Error(`Lettura contenuti fallita: ${response.status}`);
 const page = await response.json();
 if (!Array.isArray(page)) throw new Error("Risposta contenuti non valida");
-rows.push(...page);
-if (page.length < CONTENT_PAGE_SIZE) return rows;
+return { page, contentRange: response.headers.get("content-range") || "" };
 }
+
+const first = await fetchPage(0, true);
+const totalMatch = first.contentRange.match(/\/(\d+)$/);
+const total = totalMatch ? Number(totalMatch[1]) : NaN;
+if (Number.isFinite(total) && total > first.page.length) {
+const offsets = [];
+for (let from = CONTENT_PAGE_SIZE; from < total; from += CONTENT_PAGE_SIZE) offsets.push(from);
+const remainingPages = await Promise.all(offsets.map((from) => fetchPage(from)));
+return [first.page, ...remainingPages.map((result) => result.page)].flat();
+}
+
+const rows = [...first.page];
+for (let from = CONTENT_PAGE_SIZE; first.page.length === CONTENT_PAGE_SIZE; from += CONTENT_PAGE_SIZE) {
+const result = await fetchPage(from);
+rows.push(...result.page);
+if (result.page.length < CONTENT_PAGE_SIZE) break;
+}
+return rows;
 }
 
 function rowToItem(row) {
