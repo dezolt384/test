@@ -254,9 +254,9 @@ return;
 if (state.view === "week") renderWeek(weekDays);
 if (state.view === "day") renderDay();
 if (state.view === "author") renderAuthor();
-if (state.view === "live") renderFilteredList("Dirette", isLiveItem);
-if (state.view === "appointments") renderFilteredList("Appuntamenti", isAppointmentItem);
-if (state.view === "meetings") renderFilteredList("Riunioni", isMeetingItem);
+if (state.view === "live") renderContentArchive("Dirette", isLiveItem);
+if (state.view === "appointments") renderContentArchive("Appuntamenti", isAppointmentItem);
+if (state.view === "meetings") renderContentArchive("Riunioni", isMeetingItem);
 }
 
 function renderStats(weekDays) {

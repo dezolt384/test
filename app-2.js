@@ -124,9 +124,57 @@ elements.contentView.innerHTML = "";
 elements.contentView.appendChild(wrapper);
 }
 
-function renderFilteredList(title, predicate) {
-const items = filteredItems().filter(predicate).sort(compareItems);
-renderList(title, items);
+function renderContentArchive(title, predicate) {
+const weekSet = new Set(getWeekDays().map((day) => toISO(day)));
+const items = filteredItems()
+.filter(predicate)
+.sort((a, b) => b.date.localeCompare(a.date) || compareItems(a, b));
+const weekCount = items.filter((item) => weekSet.has(item.date)).length;
+
+const wrapper = document.createElement("div");
+wrapper.className = "group-view content-archive";
+
+const header = document.createElement("div");
+header.className = "archive-header content-archive-header";
+header.innerHTML = `
+<div>
+  <span>Archivio contenuti</span>
+  <strong>${escapeHtml(title)}</strong>
+</div>
+<div class="content-archive-week">
+  <strong>${weekCount}</strong>
+  <span>questa settimana</span>
+</div>
+<em>${items.length} totali</em>
+`;
+wrapper.appendChild(header);
+
+if (!items.length) {
+const empty = document.createElement("div");
+empty.className = "empty-state";
+empty.textContent = "Nessun contenuto in questa vista";
+wrapper.appendChild(empty);
+elements.contentView.innerHTML = "";
+elements.contentView.appendChild(wrapper);
+return;
+}
+
+const groups = groupBy(items, (item) => item.date.slice(0, 7));
+Object.keys(groups).sort().reverse().forEach((monthKey) => {
+const block = document.createElement("section");
+block.className = "group-block";
+block.innerHTML = `<div class="group-header"><span>${escapeHtml(formatMonth(monthKey))}</span><span>${groups[monthKey].length}</span></div>`;
+const list = document.createElement("div");
+list.className = "group-items";
+groups[monthKey]
+.sort((a, b) => b.date.localeCompare(a.date) || compareItems(a, b))
+.forEach((item) => list.appendChild(createCard(item, { showDate: true })));
+block.appendChild(list);
+wrapper.appendChild(block);
+});
+
+elements.contentView.innerHTML = "";
+elements.contentView.appendChild(wrapper);
 }
 
 function renderSearchResults() {
