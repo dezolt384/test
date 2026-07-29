@@ -322,6 +322,7 @@ elements.redoButton.disabled = !state.redoStack.length;
 }
 
 function commitState(options = {}) {
+invalidateItemIndexes();
 saveItems();
 saveBands();
 saveAuthors();

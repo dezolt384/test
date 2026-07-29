@@ -1,4 +1,4 @@
-const items = filteredItems().filter((item) => item.date === iso && item.slot === slot).sort(compareItems);
+const items = [...getRenderItemsForCell(iso, slot)].sort(compareItems);
 items.forEach((item) => cell.appendChild(createCard(item)));
 if (state.role === "coordinator") {
 cell.appendChild(createEmptySlot(iso, slot));
@@ -9,16 +9,20 @@ row.appendChild(cell);
 grid.appendChild(row);
 });
 
-const unassignedPanel = createUnassignedWeekPanel(weekDays);
+const unassignedPanel = createUnassignedWeekPanel(weekDays, weekItems);
 elements.contentView.innerHTML = "";
 if (unassignedPanel) elements.contentView.appendChild(unassignedPanel);
 elements.contentView.appendChild(grid);
 }
 
-function createUnassignedWeekPanel(weekDays) {
-const activeIds = new Set(getBandsForDate(toISO(weekDays[0])).map((band) => band.id));
-const weekSet = new Set(weekDays.map((day) => toISO(day)));
-const items = filteredItems().filter((item) => weekSet.has(item.date) && !activeIds.has(item.slot));
+function createUnassignedWeekPanel(weekDays, weekItems) {
+const activeIdsByDate = new Map(
+weekDays.map((day) => {
+const iso = toISO(day);
+return [iso, new Set(getBandsForDate(iso).map((band) => band.id))];
+}),
+);
+const items = weekItems.filter((item) => !activeIdsByDate.get(item.date)?.has(item.slot));
 if (!items.length) return null;
 
 const panel = document.createElement("section");
@@ -38,7 +42,7 @@ return panel;
 
 function renderDay() {
 const title = formatFullDate(parseDate(state.selectedDate));
-const items = filteredItems().filter((item) => item.date === state.selectedDate).sort(compareItems);
+const items = [...getRenderItemsForDate(state.selectedDate)].sort(compareItems);
 renderDayList(title, items);
 }
 
@@ -48,8 +52,7 @@ renderAuthorArchive(state.authorDetail);
 return;
 }
 
-const weekSet = new Set(getWeekDays().map((day) => toISO(day)));
-const items = filteredItems().filter((item) => weekSet.has(item.date)).sort(compareItems);
+const items = getRenderItemsForDates(getWeekDays().map((day) => toISO(day))).sort(compareItems);
 const groups = items.reduce((authorGroups, item) => {
 getItemAuthors(item).forEach((author) => {
 authorGroups[author] = authorGroups[author] || [];
@@ -127,7 +130,7 @@ elements.contentView.appendChild(wrapper);
 function renderContentArchive(title, predicate) {
 const batchSize = 60;
 const weekSet = new Set(getWeekDays().map((day) => toISO(day)));
-const items = filteredItems()
+const items = currentRenderItems
 .filter(predicate)
 .sort((a, b) => b.date.localeCompare(a.date) || compareItems(a, b));
 const weekCount = items.filter((item) => weekSet.has(item.date)).length;
@@ -201,7 +204,7 @@ elements.contentView.appendChild(wrapper);
 }
 
 function renderSearchResults() {
-const items = filteredItems().sort(compareItems);
+const items = [...currentRenderItems].sort(compareItems);
 if (!items.length) {
 renderEmpty("Nessun risultato");
 return;

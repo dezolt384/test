@@ -79,6 +79,14 @@ pointerDrag: null,
 bandPointerDrag: null,
 };
 
+let currentRenderItems = [];
+let currentItemsByDate = new Map();
+let currentItemsByCell = new Map();
+let currentAvailableYears = [];
+let itemDataRevision = 0;
+let preparedItemDataRevision = -1;
+let preparedItemQuery = null;
+
 const elements = {
 body: document.body,
 weekTitle: document.querySelector("#weekTitle"),
@@ -239,10 +247,12 @@ initRemoteState();
 
 function render() {
 const weekDays = getWeekDays();
+prepareRenderItems();
+const weekItems = getRenderItemsForDates(weekDays.map((day) => toISO(day)));
 elements.weekTitle.textContent = formatWeekRange(weekDays);
 elements.todayButton.classList.toggle("is-active", isSameWeek(initialDate, state.currentWeekStart));
 renderYearNavigator();
-renderStats(weekDays);
+renderStats(weekItems);
 renderDayStrip(weekDays);
 elements.dayStrip.classList.toggle("is-hidden", state.view === "week");
 
@@ -251,7 +261,7 @@ renderSearchResults();
 return;
 }
 
-if (state.view === "week") renderWeek(weekDays);
+if (state.view === "week") renderWeek(weekDays, weekItems);
 if (state.view === "day") renderDay();
 if (state.view === "author") renderAuthor();
 if (state.view === "live") renderContentArchive("Dirette", isLiveItem);
@@ -259,10 +269,8 @@ if (state.view === "appointments") renderContentArchive("Appuntamenti", isAppoin
 if (state.view === "meetings") renderContentArchive("Riunioni", isMeetingItem);
 }
 
-function renderStats(weekDays) {
+function renderStats(weekItems) {
 if (!elements.statTotal || !elements.statLive || !elements.statAssigned) return;
-const weekSet = new Set(weekDays.map((day) => toISO(day)));
-const weekItems = state.items.filter((item) => weekSet.has(item.date));
 elements.statTotal.textContent = weekItems.length;
 elements.statLive.textContent = weekItems.filter((item) => item.live).length;
 elements.statAssigned.textContent = weekItems.filter((item) => item.status === "assegnato").length;
@@ -292,7 +300,7 @@ elements.dayStrip.appendChild(button);
 });
 }
 
-function renderWeek(weekDays) {
+function renderWeek(weekDays, weekItems) {
 const grid = document.createElement("div");
 grid.className = "week-table";
 

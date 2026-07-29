@@ -16,6 +16,7 @@ state.pendingConflict = null;
 state.realtimeClient = null;
 state.realtimeChannel = null;
 state.realtimeRefreshTimer = 0;
+state.pendingRealtimeRows = new Map();
 state.presenceClientId = createId();
 state.editingItemId = "";
 }
@@ -190,6 +191,7 @@ state.remoteConfigSnapshot = cloneData(remote.config);
 
 state.remoteUpdatedAt = remote.config?.updated_at || "";
 state.remoteDirty = false;
+invalidateItemIndexes();
 saveItems();
 saveBands();
 saveAuthors();
@@ -539,7 +541,7 @@ if (token) state.realtimeClient.realtime.setAuth(token);
 
 state.realtimeChannel = state.realtimeClient
 .channel("programmazione-redazione", { config: { presence: { key: state.presenceClientId } } })
-.on("postgres_changes", { event: "*", schema: "public", table: "contents" }, scheduleRealtimeRefresh)
+.on("postgres_changes", { event: "*", schema: "public", table: "contents" }, scheduleRealtimeContentPatch)
 .on("postgres_changes", { event: "*", schema: "public", table: "app_config" }, scheduleRealtimeRefresh)
 .on("presence", { event: "sync" }, renderPresenceNotice)
 .subscribe((status) => {
@@ -547,6 +549,57 @@ if (status !== "SUBSCRIBED") return;
 setSyncStatus("online", "Tempo reale");
 setEditingPresence(state.editingItemId);
 });
+}
+
+function scheduleRealtimeContentPatch(payload) {
+const row = payload?.new?.id ? payload.new : null;
+if (!row) {
+scheduleRealtimeRefresh();
+return;
+}
+state.pendingRealtimeRows.set(row.id, row);
+window.clearTimeout(state.realtimeRefreshTimer);
+state.realtimeRefreshTimer = window.setTimeout(applyRealtimeContentPatches, COLLAB_REFRESH_DELAY);
+}
+
+function applyRealtimeContentPatches() {
+if (state.remoteDirty || state.remoteSaving || state.pendingConflict || !isAllSidePanelsClosed()) {
+window.clearTimeout(state.realtimeRefreshTimer);
+state.realtimeRefreshTimer = window.setTimeout(applyRealtimeContentPatches, 800);
+return;
+}
+const rows = [...state.pendingRealtimeRows.values()];
+state.pendingRealtimeRows.clear();
+if (!rows.length) return;
+
+const affectedDates = new Set();
+rows.forEach((row) => {
+const nextItem = rowToItem(row);
+const currentIndex = state.items.findIndex((item) => item.id === nextItem.id);
+if (currentIndex >= 0) affectedDates.add(state.items[currentIndex].date);
+affectedDates.add(nextItem.date);
+state.remoteItemSnapshots.set(nextItem.id, nextItem);
+state.deletedItems = state.deletedItems.filter((item) => item.id !== nextItem.id);
+
+if (nextItem._deletedAt) {
+if (currentIndex >= 0) state.items.splice(currentIndex, 1);
+state.deletedItems.push(nextItem);
+return;
+}
+if (currentIndex >= 0) state.items.splice(currentIndex, 1, nextItem);
+else state.items.push(nextItem);
+});
+
+invalidateItemIndexes();
+window.setTimeout(saveItems, 0);
+const weekDates = new Set(getWeekDays().map((day) => toISO(day)));
+const affectsCurrentView =
+state.query ||
+["author", "appointments", "meetings", "live"].includes(state.view) ||
+(state.view === "day" && affectedDates.has(state.selectedDate)) ||
+(state.view === "week" && [...affectedDates].some((date) => weekDates.has(date)));
+if (affectsCurrentView) render();
+setSyncStatus("online", "Tempo reale");
 }
 
 function scheduleRealtimeRefresh() {
@@ -742,6 +795,7 @@ state.bands = normalizeBands(Array.isArray(remote.bands) && remote.bands.length 
 state.authors = normalizeAuthors(Array.isArray(remote.authors) && remote.authors.length ? remote.authors : state.authors);
 state.remoteUpdatedAt = remote.updated_at || "";
 state.remoteDirty = false;
+invalidateItemIndexes();
 saveItems();
 saveBands();
 saveAuthors();

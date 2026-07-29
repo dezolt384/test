@@ -137,13 +137,48 @@ return chip;
 }
 
 function filteredItems() {
+if (!state.query) return state.items;
 return state.items.filter((item) => {
 const searchable = [item.title, item.author, ...getTitleAuthors(item.title), ...(item.tags || [])].join(" ").toLowerCase();
-const matchesSearch =
-!state.query ||
-searchable.includes(state.query);
-return matchesSearch;
+return searchable.includes(state.query);
 });
+}
+
+function prepareRenderItems() {
+if (preparedItemDataRevision === itemDataRevision && preparedItemQuery === state.query) return;
+currentRenderItems = filteredItems();
+currentItemsByDate = new Map();
+currentItemsByCell = new Map();
+currentRenderItems.forEach((item) => {
+const dateItems = currentItemsByDate.get(item.date) || [];
+dateItems.push(item);
+currentItemsByDate.set(item.date, dateItems);
+const cellKey = `${item.date}\u0000${item.slot}`;
+const cellItems = currentItemsByCell.get(cellKey) || [];
+cellItems.push(item);
+currentItemsByCell.set(cellKey, cellItems);
+});
+currentAvailableYears = [...new Set(
+state.items.map((item) => Number(item.date?.slice(0, 4))).filter(Number.isFinite),
+)].sort((a, b) => a - b);
+preparedItemDataRevision = itemDataRevision;
+preparedItemQuery = state.query;
+}
+
+function invalidateItemIndexes() {
+itemDataRevision += 1;
+}
+
+function getRenderItemsForDate(date) {
+return currentItemsByDate.get(date) || [];
+}
+
+function getRenderItemsForDates(dates) {
+return dates.flatMap((date) => getRenderItemsForDate(date));
+}
+
+function getRenderItemsForCell(date, slot) {
+return currentItemsByCell.get(`${date}\u0000${slot}`) || [];
 }
 
 function isMeetingItem(item) {
@@ -245,9 +280,8 @@ render();
 
 function renderYearNavigator() {
 if (!elements.yearButtons) return;
-const years = [...new Set(state.items.map((item) => Number(item.date?.slice(0, 4))).filter(Number.isFinite))].sort((a, b) => a - b);
 elements.yearButtons.replaceChildren();
-years.forEach((year) => {
+currentAvailableYears.forEach((year) => {
 const button = document.createElement("button");
 button.type = "button";
 button.className = "year-button";
@@ -298,7 +332,7 @@ return Array.from({ length: 7 }, (_, index) => addDays(state.currentWeekStart, i
 }
 
 function countForDate(date) {
-return state.items.filter((item) => item.date === date).length;
+return getRenderItemsForDate(date).length;
 }
 
 function compareItems(a, b) {
