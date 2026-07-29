@@ -369,6 +369,11 @@ title
 if (seen.has(id)) id = `${id}-${index + 1}`;
 seen.add(id);
 const legacyWindow = merged.archived ? inferLegacyBandWindow(id, items) : null;
+const periods = Array.isArray(merged.periods)
+? merged.periods
+.filter((period) => period && period.from && period.until)
+.map((period) => ({ from: String(period.from), until: String(period.until) }))
+: [];
 return {
 id,
 title,
@@ -378,6 +383,7 @@ chip: merged.chip || toChipLabel(title),
 kind: merged.kind || (["dirette", "appuntamento"].includes(id) ? id : null),
 activeFrom: merged.activeFrom || legacyWindow?.activeFrom || null,
 activeUntil: merged.activeUntil || legacyWindow?.activeUntil || null,
+periods,
 retired: Boolean(merged.retired || merged.archived),
 bg: colors.bg,
 line: colors.line,

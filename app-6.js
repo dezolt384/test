@@ -1,6 +1,7 @@
 const COLLAB_SAVE_DELAY = 500;
 const COLLAB_REFRESH_DELAY = 180;
 const COLLAB_TRASH_DAYS = 30;
+const CONTENT_PAGE_SIZE = 1000;
 
 function ensureCollaborationState() {
 if (state.collaborationReady) return;
@@ -66,25 +67,45 @@ window.setInterval(refreshRemoteState, REMOTE_SYNC_INTERVAL);
 async function fetchConcurrentState() {
 const options = { auth: Boolean(getValidAuthSession()?.access_token) };
 const headers = remoteHeaders({ Accept: "application/json" }, options);
-const [configResponse, contentsResponse] = await Promise.all([
+const [configResponse, rows] = await Promise.all([
 fetch(`${SUPABASE_REST_URL}/app_config?id=eq.${encodeURIComponent(REMOTE_STATE_ID)}&select=*`, { headers }),
-fetch(`${SUPABASE_REST_URL}/contents?select=*&order=content_date.asc,slot.asc,sort_order.asc`, { headers }),
+fetchAllContentRows(headers),
 ]);
-if ([404, 406].includes(configResponse.status) || [404, 406].includes(contentsResponse.status)) {
+if ([404, 406].includes(configResponse.status)) {
 const error = new Error("Schema concorrente non ancora attivo");
 error.concurrentUnavailable = true;
 throw error;
 }
-if (!configResponse.ok || !contentsResponse.ok) {
-throw new Error(`Lettura condivisa fallita: ${configResponse.status}/${contentsResponse.status}`);
+if (!configResponse.ok) {
+throw new Error(`Lettura condivisa fallita: ${configResponse.status}`);
 }
 const configs = await configResponse.json();
-const rows = await contentsResponse.json();
 return {
 _mode: "rows",
 config: Array.isArray(configs) ? configs[0] : null,
 rows: Array.isArray(rows) ? rows : [],
 };
+}
+
+async function fetchAllContentRows(headers) {
+const rows = [];
+for (let from = 0; ; from += CONTENT_PAGE_SIZE) {
+const to = from + CONTENT_PAGE_SIZE - 1;
+const response = await fetch(
+`${SUPABASE_REST_URL}/contents?select=*&order=content_date.asc,slot.asc,sort_order.asc,id.asc`,
+{ headers: { ...headers, Range: `${from}-${to}` } },
+);
+if ([404, 406].includes(response.status)) {
+const error = new Error("Schema concorrente non ancora attivo");
+error.concurrentUnavailable = true;
+throw error;
+}
+if (!response.ok) throw new Error(`Lettura contenuti fallita: ${response.status}`);
+const page = await response.json();
+if (!Array.isArray(page)) throw new Error("Risposta contenuti non valida");
+rows.push(...page);
+if (page.length < CONTENT_PAGE_SIZE) return rows;
+}
 }
 
 function rowToItem(row) {

@@ -8,118 +8,7 @@ const REMOTE_STATE_ID = "main";
 const REMOTE_SYNC_INTERVAL = 12000;
 const COORDINATOR_SESSION_KEY = "redazione-coordinator-auth-session";
 
-const initialItems = [
-{
-id: "c-001",
-title: "Salute, intervista Barbaresi",
-date: "2026-06-10",
-slot: "07:00",
-author: "Lisi",
-status: "assegnato",
-tags: ["salute"],
-live: false,
-appointment: false,
-},
-{
-id: "c-002",
-title: "Autonomia differenziata",
-date: "2026-06-10",
-slot: "11:00",
-author: "Lisi",
-status: "idea",
-tags: ["politica"],
-live: false,
-appointment: false,
-},
-{
-id: "c-003",
-title: "Sciopero cultura",
-date: "2026-06-13",
-slot: "07:00",
-author: "Marrone",
-status: "assegnato",
-tags: ["sindacato"],
-live: false,
-appointment: true,
-},
-{
-id: "c-004",
-title: "Diretta Pozzallo Fillea",
-date: "2026-06-13",
-slot: "dirette",
-author: "Redazione",
-status: "assegnato",
-tags: ["live"],
-live: true,
-appointment: false,
-},
-{
-id: "c-005",
-title: "Novita AI",
-date: "2026-06-13",
-slot: "11:00",
-author: "De Luca",
-status: "pubblicato",
-tags: ["tecnologia"],
-live: false,
-appointment: false,
-},
-{
-id: "c-006",
-title: "- Graphic novel Becco Giallo - Pallara\n- Recensione - Sbaraglia\n- Collettiva talk - Fama",
-date: "2026-06-14",
-slot: "07:00",
-author: "",
-status: "idea",
-tags: ["linea editoriale"],
-live: false,
-appointment: false,
-},
-{
-id: "c-007",
-title: "Mimit, confronto Conforama",
-date: "2026-06-11",
-slot: "appuntamento",
-author: "Desk",
-status: "assegnato",
-tags: ["agenda"],
-live: false,
-appointment: true,
-},
-{
-id: "c-008",
-title: "Video verticale presidio cultura",
-date: "2026-06-12",
-slot: "16:00",
-author: "Marrone",
-status: "annullato",
-tags: ["video"],
-live: false,
-appointment: false,
-},
-{
-id: "c-009",
-title: "Diretta Cassino",
-date: "2026-06-15",
-slot: "dirette",
-author: "Marcelli",
-status: "assegnato",
-tags: ["live"],
-live: true,
-appointment: false,
-},
-{
-id: "c-010",
-title: "Intervista Raitano patrimoniale",
-date: "2026-06-16",
-slot: "13:00",
-author: "Lisi",
-status: "idea",
-tags: ["patrimonio"],
-live: false,
-appointment: false,
-},
-];
+const initialItems = [];
 
 const defaultAuthors = uniqueAuthors(initialItems.flatMap((item) => [item.author, ...getTitleAuthors(item.title)]));
 
@@ -195,6 +84,7 @@ body: document.body,
 weekTitle: document.querySelector("#weekTitle"),
 todayButton: document.querySelector("#todayButton"),
 dayStrip: document.querySelector("#dayStrip"),
+yearButtons: document.querySelector("#yearButtons"),
 contentView: document.querySelector("#contentView"),
 statTotal: document.querySelector("#statTotal"),
 statLive: document.querySelector("#statLive"),
@@ -351,6 +241,7 @@ function render() {
 const weekDays = getWeekDays();
 elements.weekTitle.textContent = formatWeekRange(weekDays);
 elements.todayButton.classList.toggle("is-active", isSameWeek(initialDate, state.currentWeekStart));
+renderYearNavigator();
 renderStats(weekDays);
 renderDayStrip(weekDays);
 elements.dayStrip.classList.toggle("is-hidden", state.view === "week");

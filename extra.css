@@ -190,6 +190,57 @@
   align-items: center;
 }
 
+.year-navigator {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-top: 3px;
+  border-top: 1px solid var(--line);
+}
+
+.year-navigator > span {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.year-buttons {
+  display: flex;
+  gap: 3px;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+
+.year-buttons::-webkit-scrollbar {
+  display: none;
+}
+
+.year-button {
+  flex: 0 0 auto;
+  min-width: 42px;
+  min-height: 25px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 0 6px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 820;
+}
+
+.year-button:hover,
+.year-button.is-active {
+  color: var(--teal);
+  border-color: #b8ddd7;
+  background: var(--teal-soft);
+}
+
 @media (max-width: 1680px) and (min-width: 821px) {
   .ops-bar {
     grid-template-columns: minmax(0, 1fr) auto;

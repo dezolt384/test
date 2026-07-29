@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Programmazione redazione</title>
     <link rel="stylesheet" href="./styles.css?v=auth-lock1" />
-    <link rel="stylesheet" href="./extra.css?v=concurrency3" />
+    <link rel="stylesheet" href="./extra.css?v=archive-import1" />
     <link rel="stylesheet" href="./team.css?v=mobile-mosaic1" />
+    <link rel="stylesheet" href="./print.css?v=print-week6" />
   </head>
   <body>
     <div class="app-shell">
@@ -42,6 +43,10 @@
             </div>
             <button class="today-button" type="button" id="todayButton">Oggi</button>
             <button class="icon-button week-jump-target" type="button" id="nextWeek" data-week-jump="7" aria-label="Settimana successiva">&gt;</button>
+            <div class="year-navigator" aria-label="Archivio per anno">
+              <span>Archivio</span>
+              <div class="year-buttons" id="yearButtons"></div>
+            </div>
           </div>
 
           <nav class="tabs" aria-label="Viste">
@@ -97,7 +102,7 @@
 
               <label>
                 Titolo
-                <textarea id="itemTitle" required maxlength="260" rows="4" placeholder="Es. Intervista, servizio, nota"></textarea>
+                <textarea id="itemTitle" required maxlength="2000" rows="4" placeholder="Es. Intervista, servizio, nota"></textarea>
               </label>
 
               <div class="form-grid">
@@ -294,7 +299,8 @@
 
     <script src="./team.js?v=team-mosaic1"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="./loader.js?v=concurrency3"></script>
+    <script src="./loader.js?v=archive-import1"></script>
     <script src="./mobile.js?v=mobile-default1"></script>
+    <script src="./print.js?v=print-week5"></script>
   </body>
 </html>

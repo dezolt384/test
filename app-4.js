@@ -237,6 +237,13 @@ return state.currentWeekStart < currentWeek ? currentWeek : state.currentWeekSta
 function isBandActiveOnDate(band, date) {
 if (!band || !date) return false;
 const iso = typeof date === "string" ? date : toISO(date);
+const periods = Array.isArray(band.periods) ? band.periods : [];
+const inHistoricalPeriod = periods.some((period) => {
+if (!period?.from || !period?.until) return false;
+return iso >= period.from && iso <= period.until;
+});
+if (inHistoricalPeriod) return true;
+if (band.retired && periods.length) return false;
 if (band.activeFrom && iso < band.activeFrom) return false;
 if (band.activeUntil && iso > band.activeUntil) return false;
 return true;

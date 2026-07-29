@@ -243,6 +243,37 @@ document.querySelectorAll(".tab").forEach((tab) => tab.classList.toggle("is-acti
 render();
 }
 
+function renderYearNavigator() {
+if (!elements.yearButtons) return;
+const years = [...new Set(state.items.map((item) => Number(item.date?.slice(0, 4))).filter(Number.isFinite))].sort((a, b) => a - b);
+elements.yearButtons.replaceChildren();
+years.forEach((year) => {
+const button = document.createElement("button");
+button.type = "button";
+button.className = "year-button";
+button.textContent = year;
+button.classList.toggle("is-active", Number(state.selectedDate.slice(0, 4)) === year);
+button.addEventListener("click", () => jumpToYear(year));
+elements.yearButtons.appendChild(button);
+});
+}
+
+function jumpToYear(year) {
+const firstItem = state.items
+.filter((item) => item.date.startsWith(`${year}-`))
+.sort(compareItems)[0];
+if (!firstItem) return;
+const date = parseDate(firstItem.date);
+state.currentWeekStart = startOfWeek(date);
+state.selectedDate = firstItem.date;
+state.view = "week";
+state.query = "";
+state.authorDetail = "";
+elements.searchInput.value = "";
+document.querySelectorAll(".tab").forEach((tab) => tab.classList.toggle("is-active", tab.dataset.view === "week"));
+render();
+}
+
 function goHome() {
 goToday("week");
 }

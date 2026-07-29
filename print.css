@@ -1,0 +1,177 @@
+.reader-print-button {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.print-sheet {
+  position: fixed;
+  left: -20000px;
+  top: 0;
+  width: 1050px;
+  color: #142036;
+  background: #ffffff;
+}
+
+.print-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 58px;
+  padding: 0 0 10px;
+  border-bottom: 4px solid #e3261d;
+}
+
+.print-sheet-header .masthead-image {
+  width: 210px;
+  height: auto;
+}
+
+.print-sheet-header div {
+  text-align: right;
+}
+
+.print-sheet-header span,
+.print-sheet-header strong {
+  display: block;
+}
+
+.print-sheet-header span {
+  color: #657188;
+  font-size: 13px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.print-sheet-header strong {
+  margin-top: 3px;
+  font-size: 22px;
+}
+
+.print-sheet-frame {
+  margin-top: 10px;
+}
+
+.print-sheet .content-view {
+  min-height: 0;
+  overflow: visible;
+}
+
+.print-sheet .unassigned-items-panel {
+  margin: 0 0 8px;
+}
+
+.print-sheet .week-table {
+  overflow: visible;
+}
+
+.print-sheet .week-header,
+.print-sheet .week-row {
+  display: grid !important;
+  grid-template-columns: 74px repeat(7, minmax(0, 1fr));
+}
+
+.print-sheet .week-header {
+  break-inside: avoid;
+}
+
+.print-sheet .week-corner,
+.print-sheet .week-day-head {
+  display: block !important;
+  min-height: 36px;
+  padding: 6px;
+}
+
+.print-sheet .week-day-head strong {
+  font-size: 12px;
+}
+
+.print-sheet .slot-label,
+.print-sheet .slot-cell {
+  min-height: 0;
+  padding: 5px;
+}
+
+.print-sheet .slot-label {
+  gap: 2px;
+  border-left-width: 3px;
+}
+
+.print-sheet .slot-label span {
+  font-size: 8px;
+}
+
+.print-sheet .slot-label strong {
+  font-size: 11px;
+}
+
+.print-sheet .mobile-day-label,
+.print-sheet .item-card .card-context {
+  display: none !important;
+}
+
+.print-sheet .item-card {
+  min-height: 0;
+  margin: 0 0 4px;
+  padding: 6px;
+  border-left-width: 3px;
+  box-shadow: none;
+  break-inside: avoid;
+}
+
+.print-sheet .item-card:last-child {
+  margin-bottom: 0;
+}
+
+.print-sheet .item-card h3 {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.print-sheet .tag-row {
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.print-sheet .tag,
+.print-sheet .author-chip {
+  padding: 2px 4px;
+  font-size: 8px;
+}
+
+@page {
+  size: A4 landscape;
+  margin: 6mm;
+}
+
+@media print {
+  html,
+  body {
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  body > * {
+    display: none !important;
+  }
+
+  body > #printSheet {
+    position: static;
+    display: block !important;
+    zoom: var(--print-scale, 1);
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+}
