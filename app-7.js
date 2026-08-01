@@ -2,6 +2,25 @@
 var HOT_WINDOW_DAYS = 28;
 var HOT_PAGE_SIZE = 60;
 var HOT_SEARCH_DELAY = 180;
+var ACTIVE_DATA_YEAR = initialDate.getFullYear();
+var ACTIVE_DATA_START = `${ACTIVE_DATA_YEAR}-01-01`;
+var CONTENT_SELECT_FIELDS = [
+"id",
+"title",
+"content_date",
+"slot",
+"author",
+"status",
+"tags",
+"live",
+"appointment",
+"sort_order",
+"version",
+"updated_at",
+"updated_by_email",
+"deleted_at",
+"deleted_by_email",
+].join(",");
 
 function ensureHotPathState() {
 if (!state.loadedRanges) state.loadedRanges = [];
@@ -13,6 +32,7 @@ if (!state.pendingHistory) state.pendingHistory = null;
 if (typeof state.remoteConfigDirty !== "boolean") state.remoteConfigDirty = false;
 if (typeof state.fullArchiveLoaded !== "boolean") state.fullArchiveLoaded = false;
 if (typeof state.fullArchiveLoading !== "boolean") state.fullArchiveLoading = false;
+if (!Number.isFinite(state.lastRemoteRefreshAt)) state.lastRemoteRefreshAt = 0;
 }
 
 function loadItems() {
@@ -71,9 +91,9 @@ return isRangeLoaded(date, date);
 
 function buildContentsUrl({ from = "", to = "", order = "content_date.asc,slot.asc,sort_order.asc,id.asc" } = {}) {
 const url = new URL(`${SUPABASE_REST_URL}/contents`);
-url.searchParams.set("select", "*");
+url.searchParams.set("select", CONTENT_SELECT_FIELDS);
 url.searchParams.set("deleted_at", "is.null");
-if (from) url.searchParams.set("content_date", `gte.${from}`);
+url.searchParams.set("content_date", `gte.${from || ACTIVE_DATA_START}`);
 if (to) url.searchParams.append("content_date", `lte.${to}`);
 url.searchParams.set("order", order);
 return url;
@@ -115,30 +135,12 @@ return [first.rows, ...pages.map((page) => page.rows)].flat();
 async function fetchRecentDeletedRows(headers) {
 const cutoff = new Date(Date.now() - COLLAB_TRASH_DAYS * 86400000).toISOString();
 const url = new URL(`${SUPABASE_REST_URL}/contents`);
-url.searchParams.set("select", "*");
+url.searchParams.set("select", CONTENT_SELECT_FIELDS);
 url.searchParams.set("deleted_at", "not.is.null");
 url.searchParams.append("deleted_at", `gte.${cutoff}`);
+url.searchParams.set("content_date", `gte.${ACTIVE_DATA_START}`);
 url.searchParams.set("order", "deleted_at.desc");
 return (await fetchRowsPage(url, headers, 0, 250)).rows;
-}
-
-async function fetchContentBounds(headers) {
-const makeRequest = async (direction) => {
-const url = new URL(`${SUPABASE_REST_URL}/contents`);
-url.searchParams.set("select", "content_date");
-url.searchParams.set("deleted_at", "is.null");
-url.searchParams.set("order", `content_date.${direction}`);
-url.searchParams.set("limit", "1");
-const response = await fetch(url, { headers });
-if (!response.ok) throw new Error(`Limiti archivio non disponibili: ${response.status}`);
-return (await response.json())?.[0]?.content_date || "";
-};
-const [first, last] = await Promise.all([makeRequest("asc"), makeRequest("desc")]);
-if (!first || !last) return [];
-const startYear = Number(first.slice(0, 4));
-const endYear = Number(last.slice(0, 4));
-if (!Number.isFinite(startYear) || !Number.isFinite(endYear)) return [];
-return Array.from({ length: endYear - startYear + 1 }, (_, index) => startYear + index);
 }
 
 async function fetchConcurrentState() {
@@ -146,11 +148,10 @@ ensureHotPathState();
 const options = { auth: Boolean(getValidAuthSession()?.access_token) };
 const headers = remoteHeaders({ Accept: "application/json" }, options);
 const range = getOperationalRange(state.currentWeekStart);
-const [configResponse, activeRows, deletedRows, years] = await Promise.all([
+const [configResponse, activeRows, deletedRows] = await Promise.all([
 fetch(`${SUPABASE_REST_URL}/app_config?id=eq.${encodeURIComponent(REMOTE_STATE_ID)}&select=*`, { headers }),
 fetchContentRowsRange(headers, range.from, range.to),
 fetchRecentDeletedRows(headers),
-fetchContentBounds(headers),
 ]);
 if ([404, 406].includes(configResponse.status)) {
 const error = new Error("Schema concorrente non ancora attivo");
@@ -164,7 +165,7 @@ _mode: "rows",
 config: Array.isArray(configs) ? configs[0] : null,
 rows: [...activeRows, ...deletedRows],
 range,
-years,
+years: [ACTIVE_DATA_YEAR],
 };
 }
 
@@ -231,6 +232,7 @@ state.remoteConfigSnapshot = cloneData(remote.config);
 if (Array.isArray(remote.years) && remote.years.length) state.availableYears = remote.years;
 
 state.remoteUpdatedAt = remote.config?.updated_at || state.remoteUpdatedAt || "";
+state.lastRemoteRefreshAt = Date.now();
 state.remoteDirty = state.pendingRemoteItemIds.size > 0 || state.remoteConfigDirty;
 invalidateItemIndexes();
 saveItems();
@@ -256,7 +258,7 @@ applyConcurrentState(remote, { announce: true, initial: true });
 state.remoteLoaded = true;
 setSyncStatus("online", "Aggiornato");
 startRealtimeCollaboration();
-window.setInterval(refreshRemoteState, COLLAB_FULL_REFRESH_INTERVAL);
+startEfficientRefreshSchedule();
 } catch (error) {
 if (error.concurrentUnavailable) {
 await initLegacyRemoteState();
@@ -266,6 +268,27 @@ console.warn("Supabase non disponibile", error);
 setSyncStatus("offline", "Non collegato");
 showToast("Database condiviso non disponibile");
 }
+}
+
+function refreshRemoteStateWhenVisible(force = false) {
+if (document.visibilityState !== "visible") return;
+ensureHotPathState();
+const stale = Date.now() - state.lastRemoteRefreshAt >= COLLAB_STALE_REFRESH_INTERVAL;
+if (!force && !stale) return;
+refreshRemoteState();
+}
+
+function startEfficientRefreshSchedule() {
+ensureHotPathState();
+if (state.fullRefreshTimer) window.clearInterval(state.fullRefreshTimer);
+state.fullRefreshTimer = window.setInterval(
+() => refreshRemoteStateWhenVisible(true),
+COLLAB_FULL_REFRESH_INTERVAL,
+);
+if (state.efficientRefreshBound) return;
+state.efficientRefreshBound = true;
+window.addEventListener("focus", () => refreshRemoteStateWhenVisible());
+document.addEventListener("visibilitychange", () => refreshRemoteStateWhenVisible());
 }
 
 async function ensureContentRangeLoaded(from, to) {
@@ -476,8 +499,9 @@ return;
 }
 
 const url = new URL(`${SUPABASE_REST_URL}/contents`);
-url.searchParams.set("select", "*");
+url.searchParams.set("select", CONTENT_SELECT_FIELDS);
 url.searchParams.set("deleted_at", "is.null");
+url.searchParams.set("content_date", `gte.${ACTIVE_DATA_START}`);
 url.searchParams.set("or", `(title.ilike.*${query}*,author.ilike.*${query}*)`);
 url.searchParams.set("order", "content_date.desc,slot.asc,sort_order.asc,id.asc");
 const headers = remoteHeaders(
@@ -605,8 +629,9 @@ if (state.view === view) render();
 return;
 }
 const url = new URL(`${SUPABASE_REST_URL}/contents`);
-url.searchParams.set("select", "*");
+url.searchParams.set("select", CONTENT_SELECT_FIELDS);
 url.searchParams.set("deleted_at", "is.null");
+url.searchParams.set("content_date", `gte.${ACTIVE_DATA_START}`);
 url.searchParams.set("or", spec.filter);
 url.searchParams.set("order", "content_date.desc,sort_order.asc,id.asc");
 const headers = remoteHeaders(

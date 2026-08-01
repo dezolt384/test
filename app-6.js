@@ -2,7 +2,8 @@ const COLLAB_SAVE_DELAY = 500;
 const COLLAB_REFRESH_DELAY = 180;
 const COLLAB_TRASH_DAYS = 30;
 const CONTENT_PAGE_SIZE = 1000;
-const COLLAB_FULL_REFRESH_INTERVAL = 300000;
+const COLLAB_FULL_REFRESH_INTERVAL = 3600000;
+const COLLAB_STALE_REFRESH_INTERVAL = 600000;
 
 function ensureCollaborationState() {
 if (state.collaborationReady) return;
