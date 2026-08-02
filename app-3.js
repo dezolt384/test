@@ -405,7 +405,7 @@ return toISO(date) === toISO(initialDate);
 }
 
 function isWeekendOrHoliday(date) {
-return date.getDay() === 0 || date.getDay() === 6 || Boolean(getItalianHolidayName(date));
+return date.getDay() === 0 || Boolean(getItalianHolidayName(date));
 }
 
 function getItalianHolidayName(date) {

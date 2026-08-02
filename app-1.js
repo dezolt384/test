@@ -63,6 +63,7 @@ redoStack: [],
 toastTimer: 0,
 remoteLoaded: false,
 remoteSaving: false,
+remoteSaveQueued: false,
 remoteSaveTimer: 0,
 remoteUpdatedAt: "",
 authSession: loadAuthSession(),
@@ -310,6 +311,7 @@ const iso = toISO(day);
 const dayButton = document.createElement("button");
 dayButton.type = "button";
 dayButton.className = "week-day-head";
+dayButton.classList.toggle("is-alternate-column", index % 2 === 1);
 dayButton.classList.toggle("is-active", state.selectedDate === iso);
 dayButton.classList.toggle("is-today", isToday(day));
 dayButton.classList.toggle("is-nonworking-day", isWeekendOrHoliday(day));
@@ -343,6 +345,9 @@ weekDays.forEach((day, index) => {
 const iso = toISO(day);
 const cell = document.createElement("div");
 cell.className = "slot-cell";
+cell.classList.toggle("is-alternate-column", index % 2 === 1);
+cell.classList.toggle("is-today-column", isToday(day));
+cell.classList.toggle("is-nonworking-column", isWeekendOrHoliday(day));
 cell.dataset.slot = slot;
 cell.dataset.date = iso;
 cell.innerHTML = `<p class="mobile-day-label">${dayNames[index]} ${day.getDate()} ${monthNames[day.getMonth()]}</p>`;

@@ -1,5 +1,6 @@
 :root {
   color-scheme: light;
+  --topbar-sticky-height: 92px;
   --ink: #152033;
   --muted: #647184;
   --line: #dde4ed;
@@ -321,7 +322,7 @@ form textarea {
 
 .calendar-panel {
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .day-strip {
@@ -368,7 +369,7 @@ form textarea {
 
 .content-view {
   min-height: 520px;
-  overflow-x: auto;
+  overflow-x: visible;
 }
 
 .week-table {
@@ -381,6 +382,18 @@ form textarea {
 .week-row {
   display: grid;
   grid-template-columns: minmax(112px, .72fr) repeat(7, minmax(0, 1fr));
+}
+
+.week-header {
+  position: sticky;
+  top: var(--topbar-sticky-height);
+  z-index: 18;
+  background: #ffffff;
+  box-shadow: 0 1px 0 var(--line), 0 8px 16px rgba(21, 32, 51, .08);
+}
+
+.week-corner {
+  background: #ffffff;
 }
 
 .week-row[data-slot="07:00"] {
@@ -1002,6 +1015,14 @@ form {
 }
 
 @media (max-width: 820px) {
+  .calendar-panel {
+    overflow: hidden;
+  }
+
+  .content-view {
+    overflow-x: auto;
+  }
+
   .topbar,
   .control-band,
   .toolbar,

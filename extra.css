@@ -9,6 +9,13 @@
   hyphens: none;
 }
 
+.card-piece-author {
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  margin-top: 4px;
+}
+
 .reader-mode .item-card-main {
   padding-right: 0;
 }
@@ -188,6 +195,115 @@
 .day-chip {
   display: flex;
   align-items: center;
+}
+
+@media (min-width: 821px) {
+  .week-table {
+    --day-column: #ffffff;
+    --day-column-alternate: #f7f9fc;
+    --day-column-today: #e8f7f4;
+    --day-column-nonworking: #fff1f1;
+    --day-column-divider: #cfd9e5;
+    --day-row-divider: #e9eef4;
+  }
+
+  .week-corner,
+  .week-day-head,
+  .slot-label,
+  .slot-cell {
+    border-right-color: var(--day-column-divider);
+    border-bottom-color: var(--day-row-divider);
+  }
+
+  .week-day-head,
+  .slot-cell {
+    background: var(--day-column);
+  }
+
+  .week-day-head.is-alternate-column,
+  .slot-cell.is-alternate-column {
+    background: var(--day-column-alternate);
+  }
+
+  .week-day-head.is-today:not(.is-nonworking-day),
+  .slot-cell.is-today-column:not(.is-nonworking-column) {
+    background: var(--day-column-today);
+  }
+
+  .week-day-head.is-nonworking-day,
+  .slot-cell.is-nonworking-column {
+    background: var(--day-column-nonworking);
+  }
+
+  .week-day-head.is-active:not(.is-today):not(.is-nonworking-day) {
+    background: #eef3f8;
+  }
+
+  .week-day-head.is-nonworking-day.is-active {
+    background: #ffe4e4;
+  }
+
+  .week-header {
+    box-shadow: 0 1px 0 var(--day-column-divider), 0 7px 14px rgba(21, 32, 51, .07);
+  }
+
+  .slot-label {
+    overflow: hidden;
+  }
+
+  .week-row[data-slot="appuntamento"] .slot-label strong {
+    max-width: 100%;
+    font-size: 11px;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .slot-cell .item-card {
+    align-content: start;
+    gap: 8px;
+    padding: 11px 12px;
+    border-color: #d5dee9;
+    border-left-color: var(--slot-line);
+    border-left-width: 4px;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(21, 32, 51, .055);
+  }
+
+  .slot-cell .item-card:hover,
+  .slot-cell .item-card:focus-within {
+    border-color: #c8d3e0;
+    border-left-color: var(--slot-line);
+    box-shadow: 0 5px 14px rgba(21, 32, 51, .09);
+  }
+
+  .slot-cell .item-card-main {
+    align-self: start;
+  }
+
+  .slot-cell .card-title-text,
+  .slot-cell .card-title-list {
+    font-size: 14px;
+    line-height: 1.24;
+  }
+
+  .slot-cell.is-drop-target {
+    background: color-mix(in srgb, var(--day-column-today) 72%, #ffffff);
+  }
+}
+
+@media (min-width: 821px) and (hover: hover) and (pointer: fine) {
+  body:not(.reader-mode) .slot-cell .action-menu-button {
+    opacity: 0;
+    transform: translateY(-2px);
+    transition: opacity .15s ease, transform .15s ease, border-color .15s ease, color .15s ease;
+  }
+
+  body:not(.reader-mode) .slot-cell .item-card:hover .action-menu-button,
+  body:not(.reader-mode) .slot-cell .item-card:focus-within .action-menu-button,
+  body:not(.reader-mode) .slot-cell .action-menu-button[aria-expanded="true"] {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .year-navigator {

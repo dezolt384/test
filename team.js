@@ -10,3 +10,4 @@
   mosaic.appendChild(image);
   brand.insertAdjacentElement("afterend", mosaic);
 })();
+

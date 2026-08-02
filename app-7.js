@@ -22,6 +22,27 @@ var CONTENT_SELECT_FIELDS = [
 "deleted_by_email",
 ].join(",");
 
+function syncStickyHeaderOffset() {
+const topbar = document.querySelector(".topbar");
+if (!topbar) return;
+const height = Math.ceil(topbar.getBoundingClientRect().height);
+document.documentElement.style.setProperty("--topbar-sticky-height", `${height}px`);
+}
+
+function initStickyHeaderOffset() {
+const topbar = document.querySelector(".topbar");
+if (!topbar) return;
+syncStickyHeaderOffset();
+window.addEventListener("resize", syncStickyHeaderOffset, { passive: true });
+if ("ResizeObserver" in window) {
+window.__stickyHeaderResizeObserver?.disconnect();
+window.__stickyHeaderResizeObserver = new ResizeObserver(syncStickyHeaderOffset);
+window.__stickyHeaderResizeObserver.observe(topbar);
+}
+}
+
+initStickyHeaderOffset();
+
 function ensureHotPathState() {
 if (!state.loadedRanges) state.loadedRanges = [];
 if (!state.availableYears) state.availableYears = [];
@@ -190,13 +211,16 @@ if (pendingIds.has(item.id)) return;
 const current = localById.get(item.id);
 if (current) Object.assign(current, item);
 else {
-state.items.push(item);
-localById.set(item.id, item);
+const localItem = cloneData(item);
+state.items.push(localItem);
+localById.set(item.id, localItem);
 }
 });
 
 remoteItems.forEach((item) => {
-if (!pendingIds.has(item.id)) state.remoteItemSnapshots.set(item.id, item);
+if (!pendingIds.has(item.id) || !state.remoteItemSnapshots.has(item.id)) {
+state.remoteItemSnapshots.set(item.id, cloneData(item));
+}
 });
 const deleted = remoteItems.filter((item) => item._deletedAt);
 if (deleted.length || options.replaceDeleted) {
@@ -259,6 +283,10 @@ state.remoteLoaded = true;
 setSyncStatus("online", "Aggiornato");
 startRealtimeCollaboration();
 startEfficientRefreshSchedule();
+if (state.remoteDirty || state.pendingRemoteItemIds.size) {
+state.remoteSaveQueued = false;
+window.setTimeout(() => saveRemoteState({ immediate: true }), 0);
+}
 } catch (error) {
 if (error.concurrentUnavailable) {
 await initLegacyRemoteState();
@@ -874,6 +902,13 @@ updateHistoryButtons();
 if (refreshSearch) window.setTimeout(() => scheduleArchiveSearch(state.query, true), 0);
 }
 
+function finishPendingItemSave(id, submittedSignature) {
+const latest = state.items.find((entry) => entry.id === id) || null;
+const latestSignature = latest ? comparableItem(latest) : null;
+if (latestSignature === submittedSignature) state.pendingRemoteItemIds.delete(id);
+else state.pendingRemoteItemIds.add(id);
+}
+
 async function saveConcurrentChanges() {
 ensureHotPathState();
 const conflicts = [];
@@ -886,13 +921,14 @@ state.pendingRemoteItemIds.delete(id);
 continue;
 }
 if (item && !snapshot) {
-const inserted = await insertContentRow(item);
+const submittedSignature = comparableItem(item);
+const inserted = await insertContentRow(cloneData(item));
 if (!inserted) {
 conflicts.push(await buildItemConflict(id, item, "insert"));
 continue;
 }
 updateItemSnapshot(inserted);
-state.pendingRemoteItemIds.delete(id);
+finishPendingItemSave(id, submittedSignature);
 continue;
 }
 if (!item && snapshot?._deletedAt) {
@@ -906,38 +942,44 @@ conflicts.push(await buildItemConflict(id, null, "delete"));
 continue;
 }
 updateItemSnapshot(deleted);
-state.pendingRemoteItemIds.delete(id);
+finishPendingItemSave(id, null);
 continue;
 }
 if (snapshot._deletedAt) {
-const restored = await patchContentRow(id, snapshot._version, { ...itemToRow(item), deleted_at: null });
+const submittedItem = cloneData(item);
+const submittedSignature = comparableItem(submittedItem);
+const restored = await patchContentRow(id, snapshot._version, { ...itemToRow(submittedItem), deleted_at: null });
 if (!restored) {
 conflicts.push(await buildItemConflict(id, item, "restore"));
 continue;
 }
 updateItemSnapshot(restored);
-state.pendingRemoteItemIds.delete(id);
+finishPendingItemSave(id, submittedSignature);
 continue;
 }
 if (comparableItem(item) === comparableItem(snapshot)) {
 state.pendingRemoteItemIds.delete(id);
 continue;
 }
-const updated = await patchContentRow(id, snapshot._version, itemToRow(item));
+const submittedItem = cloneData(item);
+const submittedSignature = comparableItem(submittedItem);
+const updated = await patchContentRow(id, snapshot._version, itemToRow(submittedItem));
 if (!updated) {
 conflicts.push(await buildItemConflict(id, item, "update"));
 continue;
 }
 updateItemSnapshot(updated);
-state.pendingRemoteItemIds.delete(id);
+finishPendingItemSave(id, submittedSignature);
 }
 
 if (state.remoteConfigDirty || configChanged()) {
+const submittedBands = JSON.stringify(state.bands);
+const submittedAuthors = JSON.stringify(state.authors);
 const updatedConfig = await patchConfigRow();
 if (!updatedConfig) conflicts.push({ kind: "config" });
 else {
 state.remoteConfigSnapshot = cloneData(updatedConfig);
-state.remoteConfigDirty = false;
+state.remoteConfigDirty = submittedBands !== JSON.stringify(state.bands) || submittedAuthors !== JSON.stringify(state.authors);
 }
 }
 saveItems();

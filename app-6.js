@@ -295,7 +295,11 @@ return null;
 
 async function saveRemoteState(options = {}) {
 if (!isRemoteConfigured()) return;
-if (!options.immediate && !state.remoteLoaded) return;
+if (!state.remoteLoaded) {
+state.remoteSaveQueued = true;
+setSyncStatus("saving", "Attendo collegamento...");
+return;
+}
 if (!(await ensureCoordinatorSession())) {
 applyRole("reader");
 showToast("Accedi come coordinatore per salvare");
@@ -305,9 +309,13 @@ if (state.remoteMode !== "rows") {
 await saveLegacyRemoteState(options);
 return;
 }
-if (state.remoteSaving) return;
+if (state.remoteSaving) {
+state.remoteSaveQueued = true;
+return;
+}
 
 state.remoteSaving = true;
+state.remoteSaveQueued = false;
 setSyncStatus("saving", "Salvataggio...");
 try {
 const conflicts = await saveConcurrentChanges();
@@ -317,8 +325,10 @@ showConflict(conflicts[0]);
 setSyncStatus("conflict", "Conflitto da risolvere");
 return;
 }
-state.remoteDirty = false;
-setSyncStatus("online", "Salvato");
+const stillDirty = Boolean(state.pendingRemoteItemIds?.size || state.remoteConfigDirty);
+state.remoteDirty = stillDirty;
+state.remoteSaveQueued = stillDirty;
+setSyncStatus(stillDirty ? "saving" : "online", stillDirty ? "Modifiche da salvare" : "Salvato");
 } catch (error) {
 console.warn("Salvataggio condiviso fallito", error);
 state.remoteDirty = true;
@@ -326,6 +336,11 @@ setSyncStatus("offline", "Salvataggio fallito");
 showToast("Salvataggio condiviso non riuscito");
 } finally {
 state.remoteSaving = false;
+if (state.remoteSaveQueued && !state.pendingConflict) {
+state.remoteSaveQueued = false;
+window.clearTimeout(state.remoteSaveTimer);
+state.remoteSaveTimer = window.setTimeout(() => saveRemoteState({ immediate: true }), 0);
+}
 }
 }
 

@@ -461,6 +461,7 @@ if (event.target.closest("button, input, select, textarea, label, .card-action-m
 state.pointerDrag = {
 itemId,
 card,
+pointerId: event.pointerId,
 startX: event.clientX,
 startY: event.clientY,
 active: false,
@@ -472,6 +473,14 @@ weekJumpTimer: null,
 ghost: null,
 };
 
+if (card.setPointerCapture && event.pointerId !== undefined) {
+try {
+card.setPointerCapture(event.pointerId);
+} catch (error) {
+// Pointer capture is an enhancement; document listeners remain the fallback.
+}
+}
+
 document.addEventListener("pointermove", handlePointerDragMove);
 document.addEventListener("pointerup", finishPointerDrag);
 document.addEventListener("pointercancel", finishPointerDrag);
@@ -480,6 +489,7 @@ document.addEventListener("pointercancel", finishPointerDrag);
 function handlePointerDragMove(event) {
 const drag = state.pointerDrag;
 if (!drag) return;
+if (drag.pointerId !== undefined && event.pointerId !== drag.pointerId) return;
 
 const distance = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
 if (!drag.active && distance < 6) return;
@@ -524,12 +534,36 @@ drag.overItemId = "";
 }
 }
 
+function resolvePointerDropDestination(event, itemId) {
+if (!Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return null;
+const hovered = document.elementFromPoint(event.clientX, event.clientY);
+const cell = hovered?.closest(".slot-cell");
+if (!cell) return null;
+
+const targetCard = hovered.closest(".item-card");
+if (!targetCard || targetCard.dataset.itemId === itemId) {
+return { cell, targetItemId: "", placement: "after" };
+}
+
+const bounds = targetCard.getBoundingClientRect();
+return {
+cell,
+targetItemId: targetCard.dataset.itemId,
+placement: event.clientY < bounds.top + bounds.height / 2 ? "before" : "after",
+};
+}
+
 function finishPointerDrag(event) {
+const drag = state.pointerDrag;
+if (drag?.pointerId !== undefined && event.pointerId !== drag.pointerId) return;
+
 document.removeEventListener("pointermove", handlePointerDragMove);
 document.removeEventListener("pointerup", finishPointerDrag);
 document.removeEventListener("pointercancel", finishPointerDrag);
 
-const drag = state.pointerDrag;
+const destination = drag?.active && event.type === "pointerup"
+? resolvePointerDropDestination(event, drag.itemId)
+: null;
 state.pointerDrag = null;
 state.draggedItemId = "";
 elements.body.classList.remove("is-dragging-card");
@@ -539,10 +573,13 @@ clearWeekJumpTargets();
 if (!drag) return;
 const weekJumpDelta = drag.active && event.type === "pointerup" && drag.overWeekJump ? Number(drag.overWeekJump.dataset.weekJump) : 0;
 cancelWeekJump(drag);
+if (drag.card.hasPointerCapture?.(drag.pointerId)) {
+drag.card.releasePointerCapture(drag.pointerId);
+}
 drag.card.classList.remove("is-dragging");
 drag.ghost?.remove();
 
-const target = drag.active && event.type === "pointerup" ? drag.overCell : null;
+const target = destination?.cell || null;
 if (!target && weekJumpDelta) {
 moveItemByWeek(drag.itemId, weekJumpDelta);
 return;
@@ -550,8 +587,8 @@ return;
 if (!target) return;
 
 moveItemTo(drag.itemId, target.dataset.date, target.dataset.slot, {
-targetItemId: drag.overItemId,
-placement: drag.placement,
+targetItemId: destination.targetItemId,
+placement: destination.placement,
 });
 }
 
