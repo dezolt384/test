@@ -104,9 +104,10 @@ form: document.querySelector("#itemForm"),
 formTitle: document.querySelector("#formTitle"),
 itemId: document.querySelector("#itemId"),
 itemTitle: document.querySelector("#itemTitle"),
+itemAuthor: document.querySelector("#itemAuthor"),
+authorSuggestions: document.querySelector("#authorSuggestions"),
 itemDate: document.querySelector("#itemDate"),
 itemSlot: document.querySelector("#itemSlot"),
-moveShortcuts: document.querySelector("#moveShortcuts"),
 itemTag: document.querySelector("#itemTag"),
 cardTemplate: document.querySelector("#itemCardTemplate"),
 undoButton: document.querySelector("#undoButton"),
@@ -190,10 +191,6 @@ elements.itemTag.value = parseTags(elements.itemTag.value).join(", ");
 });
 elements.itemDate.addEventListener("change", () => renderBandOptions());
 
-document.querySelectorAll("[data-week-shift]").forEach((button) => {
-button.addEventListener("click", () => shiftEditorDate(Number(button.dataset.weekShift)));
-});
-
 elements.form.addEventListener("submit", (event) => {
 event.preventDefault();
 const existingItem = state.items.find((item) => item.id === elements.itemId.value);
@@ -206,7 +203,7 @@ id: elements.itemId.value || createId(),
 title: elements.itemTitle.value.trim(),
 date: elements.itemDate.value,
 slot: elements.itemSlot.value,
-author: "",
+author: normalizeAuthorName(elements.itemAuthor.value),
 status: getExistingStatus(elements.itemId.value),
 tags: parseTags(elements.itemTag.value),
 live: false,
@@ -217,7 +214,13 @@ _updatedAt: existingItem?._updatedAt || "",
 _updatedBy: existingItem?._updatedBy || "",
 };
 applyBandFlags(formItem, formItem.slot);
-pushHistory({ itemIds: [formItem.id] });
+const addsAuthor = formItem.author && !state.authors.some(
+(author) => author.toLocaleLowerCase("it-IT") === formItem.author.toLocaleLowerCase("it-IT"),
+);
+pushHistory({ config: addsAuthor, itemIds: [formItem.id] });
+if (addsAuthor) {
+state.authors = normalizeAuthors([...state.authors, formItem.author]);
+}
 
 const existingIndex = state.items.findIndex((item) => item.id === formItem.id);
 if (existingIndex >= 0) {

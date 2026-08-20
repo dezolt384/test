@@ -455,8 +455,47 @@ String(title ?? "")
 );
 }
 
+function getEditorContentValues(item = {}) {
+const title = String(item.title || "");
+const storedAuthor = normalizeAuthorName(item.author);
+if (storedAuthor) return { title, author: storedAuthor };
+
+const legacyAuthors = getTitleAuthors(title);
+if (legacyAuthors.length !== 1) return { title, author: "" };
+const author = legacyAuthors[0];
+const authorKey = author.toLocaleLowerCase("it-IT");
+const cleanedTitle = title
+.replace(/\r\n/g, "\n")
+.split("\n")
+.map((rawLine) => {
+const bullet = rawLine.match(/^(\s*(?:[-*]|\u2022)\s*)(.*)$/);
+const prefix = bullet ? bullet[1] : "";
+const content = bullet ? bullet[2] : rawLine;
+const piece = splitInlineAuthor(content);
+return piece.author && normalizeAuthorName(piece.author).toLocaleLowerCase("it-IT") === authorKey
+? `${prefix}${piece.title}`
+: rawLine;
+})
+.join("\n");
+return { title: cleanedTitle, author };
+}
+
+function renderAuthorSuggestions() {
+if (!elements.authorSuggestions) return;
+const suggestions = uniqueAuthors([
+...(Array.isArray(state.authors) ? state.authors : []),
+...state.items.flatMap((item) => getItemAuthors(item)),
+]).filter((author) => author !== "Senza autore");
+elements.authorSuggestions.replaceChildren(...suggestions.map((author) => {
+const option = document.createElement("option");
+option.value = author;
+return option;
+}));
+}
+
 function getItemAuthors(item) {
-const authors = uniqueAuthors([item.author, ...getTitleAuthors(item.title)].filter(Boolean));
+const storedAuthor = normalizeAuthorName(item.author);
+const authors = storedAuthor ? [storedAuthor] : getTitleAuthors(item.title);
 return authors.length ? authors : ["Senza autore"];
 }
 

@@ -95,6 +95,18 @@ container.append(" ");
 container.appendChild(author);
 }
 
+function createStoredAuthor(author) {
+const cleanAuthor = normalizeAuthorName(author);
+if (!cleanAuthor) return document.createDocumentFragment();
+const row = document.createElement("div");
+row.className = "card-stored-author";
+const pill = document.createElement("span");
+pill.className = "card-piece-author";
+pill.textContent = cleanAuthor;
+row.appendChild(pill);
+return row;
+}
+
 function createEmptySlot(date, slot) {
 const button = document.createElement("button");
 button.type = "button";
@@ -205,9 +217,11 @@ elements.body.classList.add("editor-open");
 elements.bandPanel.classList.add("is-hidden");
 elements.editorPanel.classList.remove("is-hidden");
 elements.formTitle.textContent = options.mode === "move" ? "Sposta contenuto" : item.id ? "Modifica contenuto" : "Nuovo contenuto";
-elements.moveShortcuts.classList.toggle("is-hidden", options.mode !== "move");
 elements.itemId.value = item.id || "";
-elements.itemTitle.value = item.title || "";
+const editorValue = getEditorContentValues(item);
+elements.itemTitle.value = editorValue.title;
+elements.itemAuthor.value = editorValue.author;
+renderAuthorSuggestions();
 elements.itemDate.value = item.date || state.selectedDate;
 elements.itemSlot.value = getBand(item.slot).id;
 renderBandOptions();
@@ -219,15 +233,8 @@ setEditingPresence(item.id || "");
 
 function closeEditor() {
 elements.editorPanel.classList.add("is-hidden");
-elements.moveShortcuts.classList.add("is-hidden");
 setEditingPresence("");
 if (isAllSidePanelsClosed()) elements.body.classList.remove("editor-open");
-}
-
-function shiftEditorDate(delta) {
-const baseDate = elements.itemDate.value || state.selectedDate;
-elements.itemDate.value = toISO(addDays(parseDate(baseDate), delta));
-renderBandOptions();
 }
 
 function openBandManager() {
@@ -253,6 +260,7 @@ elements.form.reset();
 elements.itemId.value = "";
 elements.itemDate.value = state.selectedDate;
 renderBandOptions();
+elements.itemAuthor.value = "";
 elements.itemTag.value = "";
 elements.formTitle.textContent = "Nuovo contenuto";
 }

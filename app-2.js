@@ -331,7 +331,14 @@ context.appendChild(createBandChip(item.slot, item.date));
 if (options.showDate) {
 context.appendChild(createDateChip(item.date));
 }
-const titleInfo = renderCardTitleRich(fragment.querySelector("h3"), item.title);
+const title = fragment.querySelector("h3");
+const storedAuthor = normalizeAuthorName(item.author);
+if (storedAuthor) {
+renderCardTitle(title, item.title);
+title.after(createStoredAuthor(storedAuthor));
+} else {
+renderCardTitleRich(title, item.title);
+}
 (item.tags || []).forEach((tag) => tags.appendChild(createTag(tag)));
 
 const groupItems = getOrderedGroupItems(item.date, item.slot);

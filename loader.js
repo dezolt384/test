@@ -20,7 +20,7 @@
 
   try {
     const fetched = await Promise.all(parts.map(async (path) => {
-      const response = await fetch(`./${path}?v=drag-save5`, { cache: "no-store" });
+      const response = await fetch(`./${path}?v=author-field1`, { cache: "no-store" });
       if (!response.ok) throw new Error(`${path}: ${response.status}`);
       return response.text();
     }));
