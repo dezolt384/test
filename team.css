@@ -1,1 +1,149 @@
-.topbar{display:grid;grid-template-columns:auto minmax(260px,1fr) auto auto;align-items:center;gap:16px}.brand{min-width:0}.team-mosaic{justify-self:center;width:clamp(310px,28vw,500px);min-width:0;pointer-events:none}.team-mosaic img{display:block;width:100%;height:auto}.reader-mode .history-actions{display:none}@media(max-width:1080px){.topbar{grid-template-columns:minmax(180px,1fr) auto auto}.team-mosaic{display:none}}@media(max-width:820px){.topbar{display:flex}.brand{order:1}.team-mosaic{display:block;order:2;width:min(100%,430px);margin:2px auto 0}.role-switch{order:3}.history-actions{order:4}}
+.topbar {
+  display: grid;
+  grid-template-columns: auto minmax(260px, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand {
+  min-width: 0;
+}
+
+.team-mosaic {
+  justify-self: center;
+  width: clamp(310px, 28vw, 500px);
+  min-width: 0;
+  pointer-events: none;
+}
+
+.team-mosaic img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.reader-mode .history-actions {
+  display: none;
+}
+
+@media (max-width: 1080px) {
+  .topbar {
+    grid-template-columns: minmax(180px, 1fr) auto auto;
+  }
+
+  .team-mosaic {
+    display: none;
+  }
+}
+
+@media (max-width: 820px) {
+  .topbar {
+    display: grid;
+    grid-template-columns: minmax(134px, 1fr) auto auto;
+    grid-template-areas:
+      "brand brand brand"
+      "role sync history";
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+  }
+
+  .brand {
+    grid-area: brand;
+    justify-self: center;
+    width: auto;
+    flex: none;
+  }
+
+  .masthead-image {
+    width: min(46vw, 190px);
+    height: 24px;
+    object-position: center;
+  }
+
+  .team-mosaic {
+    display: none;
+  }
+
+  .role-switch {
+    grid-area: role;
+    order: initial;
+    width: auto;
+    min-width: 0;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 7px;
+  }
+
+  .role-button {
+    min-width: 0;
+    min-height: 30px;
+    padding: 0 6px;
+    font-size: 10px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .sync-status {
+    grid-area: sync;
+    order: initial;
+    width: auto;
+    min-height: 30px;
+    justify-content: center;
+    gap: 5px;
+    padding: 0 3px;
+    font-size: 10px;
+  }
+
+  .sync-status-dot {
+    width: 7px;
+    height: 7px;
+    flex: none;
+  }
+
+  .history-actions {
+    grid-area: history;
+    order: initial;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 7px;
+  }
+
+  .history-button {
+    min-width: 34px;
+    min-height: 30px;
+    padding: 0 5px;
+    font-size: 9px;
+  }
+
+  .reader-mode .topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "brand brand"
+      "role sync";
+  }
+}
+
+@media (max-width: 360px) {
+  .topbar {
+    grid-template-columns: minmax(118px, 1fr) auto auto;
+    gap: 4px;
+    padding-inline: 6px;
+  }
+
+  .role-button {
+    padding-inline: 4px;
+    font-size: 9px;
+  }
+
+  .sync-status {
+    gap: 4px;
+    padding-inline: 1px;
+    font-size: 9px;
+  }
+
+  .history-button {
+    min-width: 32px;
+    padding-inline: 3px;
+  }
+}
