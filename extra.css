@@ -20,6 +20,37 @@
   padding-right: 0;
 }
 
+/* Keep card menus above adjacent archive groups instead of clipping them. */
+.group-view .group-block {
+  position: relative;
+  overflow: visible;
+}
+
+.group-view .group-block > .group-header {
+  border-radius: 7px 7px 0 0;
+}
+
+.group-view .group-block > .group-items {
+  border-radius: 0 0 7px 7px;
+  background: #fff;
+}
+
+.group-view .group-block:has(.card-action-menu:not([hidden])) {
+  z-index: 40;
+}
+
+.item-card:has(.card-action-menu:not([hidden])) {
+  z-index: 41;
+}
+
+.card-actions:has(.card-action-menu:not([hidden])) {
+  z-index: 42;
+}
+
+.card-action-menu {
+  z-index: 43;
+}
+
 .cell-add-button {
   min-height: 34px;
   margin-top: 8px;
