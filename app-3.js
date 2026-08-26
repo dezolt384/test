@@ -107,6 +107,23 @@ row.appendChild(pill);
 return row;
 }
 
+function renderStructuredContentParts(container, parts) {
+container.replaceChildren();
+const list = document.createElement("ul");
+list.className = "card-title-list card-content-parts";
+parts.forEach((part) => {
+const item = document.createElement("li");
+const text = document.createElement("span");
+text.className = "card-content-part-title";
+text.textContent = part.title;
+item.appendChild(text);
+const author = normalizeAuthorName(part.author);
+if (author) item.appendChild(createStoredAuthor(author));
+list.appendChild(item);
+});
+container.appendChild(list);
+}
+
 function createEmptySlot(date, slot) {
 const button = document.createElement("button");
 button.type = "button";
@@ -131,6 +148,13 @@ tag.textContent = label;
 return tag;
 }
 
+function createContentFormatTag(label) {
+const tag = document.createElement("span");
+tag.className = "content-format-tag";
+tag.textContent = label;
+return tag;
+}
+
 function createBandChip(slot, date) {
 const band = findBand(slot);
 const chip = document.createElement("span");
@@ -151,7 +175,13 @@ return chip;
 function filteredItems() {
 if (!state.query) return state.items;
 return state.items.filter((item) => {
-const searchable = [item.title, item.author, ...getTitleAuthors(item.title), ...(item.tags || [])].join(" ").toLowerCase();
+const searchable = [
+item.title,
+item.author,
+...getItemContentParts(item).flatMap((part) => [part.title, part.author]),
+...getTitleAuthors(item.title),
+...(item.tags || []),
+].join(" ").toLowerCase();
 return searchable.includes(state.query);
 });
 }
@@ -218,15 +248,18 @@ elements.bandPanel.classList.add("is-hidden");
 elements.editorPanel.classList.remove("is-hidden");
 elements.formTitle.textContent = options.mode === "move" ? "Sposta contenuto" : item.id ? "Modifica contenuto" : "Nuovo contenuto";
 elements.itemId.value = item.id || "";
-const editorValue = getEditorContentValues(item);
+elements.itemFormat.value = getContentFormat(item);
+const contentParts = getItemContentParts(item);
+const editorValue = contentParts[0] || getEditorContentValues(item);
 elements.itemTitle.value = editorValue.title;
 elements.itemAuthor.value = editorValue.author;
+renderAdditionalContentParts(contentParts.slice(1));
 renderAuthorSuggestions();
 elements.itemDate.value = item.date || state.selectedDate;
 elements.itemSlot.value = getBand(item.slot).id;
 renderBandOptions();
 elements.itemPublication.value = item.status === "pubblicato" ? "pubblicato" : "idea";
-elements.itemTag.value = formatTags(item.tags || []);
+elements.itemTag.value = formatTags(getRegularTags(item.tags));
 if (options.mode === "move") elements.itemDate.focus({ preventScroll: true });
 else elements.itemTitle.focus({ preventScroll: true });
 setEditingPresence(item.id || "");
@@ -259,9 +292,11 @@ return [elements.editorPanel, elements.bandPanel].every((panel) => panel.classLi
 function resetForm() {
 elements.form.reset();
 elements.itemId.value = "";
+elements.itemFormat.value = "";
 elements.itemDate.value = state.selectedDate;
 renderBandOptions();
 elements.itemAuthor.value = "";
+renderAdditionalContentParts([]);
 elements.itemPublication.value = "idea";
 elements.itemTag.value = "";
 elements.formTitle.textContent = "Nuovo contenuto";

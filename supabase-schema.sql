@@ -41,6 +41,7 @@ create table if not exists public.contents (
   content_date date not null,
   slot text not null,
   author text not null default '',
+  content_parts jsonb not null default '[]'::jsonb,
   status text not null default 'idea',
   tags jsonb not null default '[]'::jsonb,
   live boolean not null default false,
@@ -59,7 +60,8 @@ create table if not exists public.contents (
   source_sheet text,
   source_cell text,
   source_hash text,
-  constraint contents_tags_array check (jsonb_typeof(tags) = 'array')
+  constraint contents_tags_array check (jsonb_typeof(tags) = 'array'),
+  constraint contents_content_parts_array check (jsonb_typeof(content_parts) = 'array')
 );
 
 create index if not exists contents_calendar_idx

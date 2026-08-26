@@ -20,7 +20,7 @@
 
   try {
     const fetched = await Promise.all(parts.map(async (path) => {
-      const response = await fetch(`./${path}?v=editor-bottom-close1`, { cache: "no-store" });
+      const response = await fetch(`./${path}?v=multi-author1`, { cache: "no-store" });
       if (!response.ok) throw new Error(`${path}: ${response.status}`);
       return response.text();
     }));

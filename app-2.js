@@ -312,6 +312,7 @@ function createCard(item, options = {}) {
 const fragment = elements.cardTemplate.content.cloneNode(true);
 const card = fragment.querySelector(".item-card");
 const context = fragment.querySelector(".card-context");
+const formatRow = fragment.querySelector(".content-format-row");
 const tags = fragment.querySelector(".tag-row");
 const move = fragment.querySelector(".move-button");
 const edit = fragment.querySelector(".edit-button");
@@ -333,15 +334,23 @@ context.appendChild(createBandChip(item.slot, item.date));
 if (options.showDate) {
 context.appendChild(createDateChip(item.date));
 }
+const contentFormat = getContentFormat(item);
+if (contentFormat) formatRow.appendChild(createContentFormatTag(contentFormat));
 const title = fragment.querySelector("h3");
-const storedAuthor = normalizeAuthorName(item.author);
+const contentParts = getItemContentParts(item);
+if (contentParts.length > 1) {
+renderStructuredContentParts(title, contentParts);
+} else {
+const primaryPart = contentParts[0] || { title: item.title || "", author: item.author || "" };
+const storedAuthor = normalizeAuthorName(primaryPart.author);
 if (storedAuthor) {
-renderCardTitle(title, item.title);
+renderCardTitle(title, primaryPart.title);
 title.after(createStoredAuthor(storedAuthor));
 } else {
-renderCardTitleRich(title, item.title);
+renderCardTitleRich(title, primaryPart.title);
 }
-(item.tags || []).forEach((tag) => tags.appendChild(createTag(tag)));
+}
+getRegularTags(item.tags).forEach((tag) => tags.appendChild(createTag(tag)));
 
 const groupItems = getOrderedGroupItems(item.date, item.slot);
 const groupIndex = groupItems.findIndex((entry) => entry.id === item.id);

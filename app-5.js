@@ -266,6 +266,32 @@ function formatTags(tags) {
 return Array.isArray(tags) ? tags.join(", ") : "";
 }
 
+function isContentFormatTag(tag) {
+return String(tag || "").startsWith(CONTENT_FORMAT_TAG_PREFIX);
+}
+
+function getContentFormat(item) {
+const storedTag = (Array.isArray(item?.tags) ? item.tags : []).find(isContentFormatTag);
+const rawValue = storedTag ? storedTag.slice(CONTENT_FORMAT_TAG_PREFIX.length) : "";
+const aliases = {
+"APE 2 VIDEO VERT": "APE 2 VIDEO VERTICALE",
+"ARTICOLO SING": "ARTICOLO SINGOLO",
+};
+const value = aliases[rawValue] || rawValue;
+return CONTENT_FORMAT_OPTIONS.includes(value) ? value : "";
+}
+
+function getRegularTags(tags) {
+return (Array.isArray(tags) ? tags : []).filter((tag) => !isContentFormatTag(tag));
+}
+
+function withContentFormat(tags, format) {
+const regularTags = getRegularTags(tags);
+return CONTENT_FORMAT_OPTIONS.includes(format)
+? [...regularTags, `${CONTENT_FORMAT_TAG_PREFIX}${format}`]
+: regularTags;
+}
+
 function pushHistory() {
 state.undoStack.push(snapshotState());
 if (state.undoStack.length > 40) state.undoStack.shift();
@@ -493,7 +519,87 @@ return option;
 }));
 }
 
+function normalizeContentParts(parts) {
+return (Array.isArray(parts) ? parts : []).map((part) => ({
+title: String(part?.title || "").trim(),
+author: normalizeAuthorName(part?.author),
+})).filter((part) => part.title);
+}
+
+function getItemContentParts(item) {
+const savedParts = normalizeContentParts(item?.parts);
+if (savedParts.length) return savedParts;
+const editorValue = getEditorContentValues(item || {});
+return editorValue.title ? [editorValue] : [];
+}
+
+function createContentPartEditorRow(part = {}) {
+const row = document.createElement("section");
+row.className = "content-part-editor";
+row.innerHTML = `
+<div class="content-part-editor-heading">
+  <strong></strong>
+  <div class="content-part-editor-actions">
+    <button class="icon-button content-part-up" type="button" aria-label="Sposta contenuto su" title="Sposta su">&#8593;</button>
+    <button class="icon-button content-part-down" type="button" aria-label="Sposta contenuto giu" title="Sposta giu">&#8595;</button>
+    <button class="icon-button content-part-remove" type="button" aria-label="Rimuovi contenuto" title="Rimuovi">x</button>
+  </div>
+</div>
+<label>Titolo<textarea class="content-part-title" maxlength="2000" rows="3" placeholder="Es. Intervista, servizio, nota"></textarea></label>
+<label>Autore<input class="content-part-author" type="text" maxlength="80" list="authorSuggestions" autocomplete="off" placeholder="Es. Pallara" /></label>`;
+row.querySelector(".content-part-title").value = String(part.title || "");
+row.querySelector(".content-part-author").value = normalizeAuthorName(part.author);
+row.querySelector(".content-part-remove").addEventListener("click", () => {
+row.remove();
+updateContentPartEditorRows();
+});
+row.querySelector(".content-part-up").addEventListener("click", () => {
+const previous = row.previousElementSibling;
+if (previous) elements.additionalContentParts.insertBefore(row, previous);
+updateContentPartEditorRows();
+});
+row.querySelector(".content-part-down").addEventListener("click", () => {
+const next = row.nextElementSibling;
+if (next) elements.additionalContentParts.insertBefore(next, row);
+updateContentPartEditorRows();
+});
+return row;
+}
+
+function addContentPartEditorRow(part = {}) {
+elements.additionalContentParts.appendChild(createContentPartEditorRow(part));
+updateContentPartEditorRows();
+elements.additionalContentParts.lastElementChild?.querySelector(".content-part-title")?.focus();
+}
+
+function renderAdditionalContentParts(parts) {
+elements.additionalContentParts.replaceChildren(...normalizeContentParts(parts).map(createContentPartEditorRow));
+updateContentPartEditorRows();
+}
+
+function updateContentPartEditorRows() {
+const rows = [...elements.additionalContentParts.children];
+rows.forEach((row, index) => {
+row.querySelector("strong").textContent = `Contenuto ${index + 2}`;
+row.querySelector(".content-part-up").disabled = index === 0;
+row.querySelector(".content-part-down").disabled = index === rows.length - 1;
+});
+}
+
+function collectContentPartsFromForm() {
+const parts = [{
+title: elements.itemTitle.value,
+author: elements.itemAuthor.value,
+}, ...[...elements.additionalContentParts.querySelectorAll(".content-part-editor")].map((row) => ({
+title: row.querySelector(".content-part-title").value,
+author: row.querySelector(".content-part-author").value,
+}))];
+return normalizeContentParts(parts);
+}
+
 function getItemAuthors(item) {
+const contentAuthors = uniqueAuthors(getItemContentParts(item).map((part) => part.author));
+if (contentAuthors.length) return contentAuthors;
 const storedAuthor = normalizeAuthorName(item.author);
 const authors = storedAuthor ? [storedAuthor] : getTitleAuthors(item.title);
 return authors.length ? authors : ["Senza autore"];
@@ -537,6 +643,7 @@ groupCounters.set(groupKey, Math.max(fallbackOrder + 1, order + 1));
 return {
 ...item,
 tags: Array.isArray(item.tags) ? item.tags : parseTags(item.tags || ""),
+parts: normalizeContentParts(item.parts),
 live: Boolean(item.live || item.slot === "dirette"),
 appointment: Boolean(item.appointment || item.slot === "appuntamento"),
 order,

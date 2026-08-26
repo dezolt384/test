@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Programmazione redazione</title>
     <link rel="stylesheet" href="./styles.css?v=author-field1" />
-    <link rel="stylesheet" href="./extra.css?v=publication-controls1" />
+    <link rel="stylesheet" href="./extra.css?v=multi-author1" />
     <link rel="stylesheet" href="./team.css?v=mobile-header1" />
     <link rel="stylesheet" href="./print.css?v=print-week7" />
   </head>
@@ -101,6 +101,21 @@
               <input type="hidden" id="itemId" />
 
               <label>
+                Layout
+                <select id="itemFormat">
+                  <option value="">-</option>
+                  <option value="APE 1">APE 1</option>
+                  <option value="APE 2">APE 2</option>
+                  <option value="APE 3">APE 3</option>
+                  <option value="APE 3 SPECIAL">APE 3 SPECIAL</option>
+                  <option value="APE 4">APE 4</option>
+                  <option value="APE TOP">APE TOP</option>
+                  <option value="APE 2 VIDEO VERTICALE">APE 2 VIDEO VERTICALE</option>
+                  <option value="ARTICOLO SINGOLO">ARTICOLO SINGOLO</option>
+                </select>
+              </label>
+
+              <label>
                 Titolo
                 <textarea id="itemTitle" required maxlength="2000" rows="4" placeholder="Es. Intervista, servizio, nota"></textarea>
               </label>
@@ -110,6 +125,9 @@
                 <input id="itemAuthor" type="text" maxlength="80" list="authorSuggestions" autocomplete="off" placeholder="Es. Pallara" />
                 <datalist id="authorSuggestions"></datalist>
               </label>
+
+              <div class="additional-content-parts" id="additionalContentParts"></div>
+              <button class="secondary-button add-content-part-button" type="button" id="addContentPart">+ Aggiungi contenuto</button>
 
               <div class="form-grid">
                 <label>
@@ -179,6 +197,7 @@
       <article class="item-card">
         <div class="item-card-main">
           <div class="card-context"></div>
+          <div class="content-format-row"></div>
           <h3></h3>
           <div class="tag-row"></div>
         </div>
@@ -311,7 +330,7 @@
 
     <script src="./team.js?v=team-mosaic1"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="./loader.js?v=editor-bottom-close1"></script>
+    <script src="./loader.js?v=multi-author1"></script>
     <script src="./mobile.js?v=mobile-default1"></script>
     <script src="./print.js?v=print-week6"></script>
   </body>

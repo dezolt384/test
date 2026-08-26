@@ -7,6 +7,17 @@ const SUPABASE_AUTH_URL = SUPABASE_REST_URL.replace(/\/rest\/v1\/?$/, "/auth/v1"
 const REMOTE_STATE_ID = "main";
 const REMOTE_SYNC_INTERVAL = 12000;
 const COORDINATOR_SESSION_KEY = "redazione-coordinator-auth-session";
+const CONTENT_FORMAT_TAG_PREFIX = "__content_format:";
+const CONTENT_FORMAT_OPTIONS = [
+"APE 1",
+"APE 2",
+"APE 3",
+"APE 3 SPECIAL",
+"APE 4",
+"APE TOP",
+"APE 2 VIDEO VERTICALE",
+"ARTICOLO SINGOLO",
+];
 
 const initialItems = [];
 
@@ -103,9 +114,12 @@ editorPanel: document.querySelector("#editorPanel"),
 form: document.querySelector("#itemForm"),
 formTitle: document.querySelector("#formTitle"),
 itemId: document.querySelector("#itemId"),
+itemFormat: document.querySelector("#itemFormat"),
 itemTitle: document.querySelector("#itemTitle"),
 itemAuthor: document.querySelector("#itemAuthor"),
 authorSuggestions: document.querySelector("#authorSuggestions"),
+additionalContentParts: document.querySelector("#additionalContentParts"),
+addContentPart: document.querySelector("#addContentPart"),
 itemDate: document.querySelector("#itemDate"),
 itemSlot: document.querySelector("#itemSlot"),
 itemPublication: document.querySelector("#itemPublication"),
@@ -192,9 +206,15 @@ elements.itemTag.addEventListener("change", () => {
 elements.itemTag.value = parseTags(elements.itemTag.value).join(", ");
 });
 elements.itemDate.addEventListener("change", () => renderBandOptions());
+elements.addContentPart.addEventListener("click", () => addContentPartEditorRow());
 
 elements.form.addEventListener("submit", (event) => {
 event.preventDefault();
+const contentParts = collectContentPartsFromForm();
+if (!contentParts.length || !contentParts[0].title) {
+elements.itemTitle.focus();
+return;
+}
 const existingItem = state.items.find((item) => item.id === elements.itemId.value);
 const keepsPosition =
 existingItem &&
@@ -202,12 +222,13 @@ existingItem.date === elements.itemDate.value &&
 existingItem.slot === elements.itemSlot.value;
 const formItem = {
 id: elements.itemId.value || createId(),
-title: elements.itemTitle.value.trim(),
+title: contentParts.map((part) => part.title).join("\n"),
 date: elements.itemDate.value,
 slot: elements.itemSlot.value,
-author: normalizeAuthorName(elements.itemAuthor.value),
+author: uniqueAuthors(contentParts.map((part) => part.author)).join(", "),
+parts: contentParts,
 status: elements.itemPublication.value === "pubblicato" ? "pubblicato" : "idea",
-tags: parseTags(elements.itemTag.value),
+tags: withContentFormat(parseTags(elements.itemTag.value), elements.itemFormat.value),
 live: false,
 appointment: false,
 order: keepsPosition ? getItemOrder(existingItem) : getNextItemOrder(elements.itemDate.value, elements.itemSlot.value),
@@ -216,12 +237,12 @@ _updatedAt: existingItem?._updatedAt || "",
 _updatedBy: existingItem?._updatedBy || "",
 };
 applyBandFlags(formItem, formItem.slot);
-const addsAuthor = formItem.author && !state.authors.some(
-(author) => author.toLocaleLowerCase("it-IT") === formItem.author.toLocaleLowerCase("it-IT"),
+const newAuthors = uniqueAuthors(contentParts.map((part) => part.author)).filter((itemAuthor) =>
+!state.authors.some((author) => author.toLocaleLowerCase("it-IT") === itemAuthor.toLocaleLowerCase("it-IT")),
 );
-pushHistory({ config: addsAuthor, itemIds: [formItem.id] });
-if (addsAuthor) {
-state.authors = normalizeAuthors([...state.authors, formItem.author]);
+pushHistory({ config: newAuthors.length > 0, itemIds: [formItem.id] });
+if (newAuthors.length) {
+state.authors = normalizeAuthors([...state.authors, ...newAuthors]);
 }
 
 const existingIndex = state.items.findIndex((item) => item.id === formItem.id);

@@ -10,6 +10,7 @@ var CONTENT_SELECT_FIELDS = [
 "content_date",
 "slot",
 "author",
+"content_parts",
 "status",
 "tags",
 "live",
@@ -515,7 +516,13 @@ render();
 try {
 if (state.remoteMode !== "rows") {
 const items = state.items.filter((item) => {
-const searchable = [item.title, item.author, ...getTitleAuthors(item.title), ...(item.tags || [])]
+const searchable = [
+item.title,
+item.author,
+...getItemContentParts(item).flatMap((part) => [part.title, part.author]),
+...getTitleAuthors(item.title),
+...(item.tags || []),
+]
 .join(" ")
 .toLocaleLowerCase("it-IT");
 return searchable.includes(query);
