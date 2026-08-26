@@ -51,6 +51,70 @@
   z-index: 43;
 }
 
+.item-card[data-status="pubblicato"] {
+  background: color-mix(in srgb, #fff 88%, var(--green-soft));
+}
+
+.item-card[data-status="pubblicato"] .item-card-main {
+  padding-bottom: 24px;
+  opacity: 0.62;
+}
+
+.item-card[data-status="pubblicato"]::after {
+  content: "\2713";
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--green) 30%, #fff);
+  color: var(--green);
+  background: var(--green-soft);
+  box-shadow: 0 0 0 2px #fff;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.publish-button {
+  color: var(--green);
+}
+
+.publish-button[aria-pressed="true"],
+.publish-button:disabled {
+  color: var(--green);
+  background: var(--green-soft);
+  cursor: default;
+  opacity: 1;
+}
+
+.unpublish-button[aria-pressed="true"],
+.unpublish-button:disabled {
+  color: var(--muted);
+  background: var(--surface);
+  cursor: default;
+  opacity: 1;
+}
+
+.presence-notice.is-hidden,
+.presence-notice:empty {
+  display: none;
+}
+
+#editorPanel #formTitle {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--amber) 48%, #fff);
+  border-left: 4px solid var(--amber);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--amber-soft) 72%, #fff);
+}
+
 .cell-add-button {
   min-height: 34px;
   margin-top: 8px;

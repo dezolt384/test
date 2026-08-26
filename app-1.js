@@ -108,6 +108,7 @@ itemAuthor: document.querySelector("#itemAuthor"),
 authorSuggestions: document.querySelector("#authorSuggestions"),
 itemDate: document.querySelector("#itemDate"),
 itemSlot: document.querySelector("#itemSlot"),
+itemPublication: document.querySelector("#itemPublication"),
 itemTag: document.querySelector("#itemTag"),
 cardTemplate: document.querySelector("#itemCardTemplate"),
 undoButton: document.querySelector("#undoButton"),
@@ -146,6 +147,7 @@ elements.todayButton.addEventListener("click", () => goToday());
 document.querySelector("#newItemButton").addEventListener("click", () => openEditor());
 elements.manageBandsButton.addEventListener("click", () => openBandManager());
 document.querySelector("#closeEditor").addEventListener("click", () => closeEditor());
+document.querySelector("#closeEditorBottom").addEventListener("click", () => closeEditor());
 elements.closeBands.addEventListener("click", () => closeBandManager());
 document.querySelector("#resetForm").addEventListener("click", () => resetForm());
 elements.undoButton.addEventListener("click", () => undo());
@@ -204,7 +206,7 @@ title: elements.itemTitle.value.trim(),
 date: elements.itemDate.value,
 slot: elements.itemSlot.value,
 author: normalizeAuthorName(elements.itemAuthor.value),
-status: getExistingStatus(elements.itemId.value),
+status: elements.itemPublication.value === "pubblicato" ? "pubblicato" : "idea",
 tags: parseTags(elements.itemTag.value),
 live: false,
 appointment: false,

@@ -317,6 +317,8 @@ const move = fragment.querySelector(".move-button");
 const edit = fragment.querySelector(".edit-button");
 const history = fragment.querySelector(".history-detail-button");
 const del = fragment.querySelector(".delete-button");
+const publish = fragment.querySelector(".publish-button");
+const unpublish = fragment.querySelector(".unpublish-button");
 const menuButton = fragment.querySelector(".action-menu-button");
 const menu = fragment.querySelector(".card-action-menu");
 const orderControls = fragment.querySelector(".card-order-controls");
@@ -370,6 +372,20 @@ openItemHistory(item);
 del.addEventListener("click", () => {
 closeActionMenus();
 deleteItem(item.id);
+});
+publish.disabled = item.status === "pubblicato";
+publish.setAttribute("aria-pressed", item.status === "pubblicato" ? "true" : "false");
+publish.title = item.status === "pubblicato" ? "Contenuto gia pubblicato" : "Segna come pubblicato";
+publish.addEventListener("click", () => {
+closeActionMenus();
+setItemPublication(item.id, true);
+});
+unpublish.disabled = item.status !== "pubblicato";
+unpublish.setAttribute("aria-pressed", item.status === "pubblicato" ? "false" : "true");
+unpublish.title = item.status === "pubblicato" ? "Segna come non pubblicato" : "Contenuto non pubblicato";
+unpublish.addEventListener("click", () => {
+closeActionMenus();
+setItemPublication(item.id, false);
 });
 moveUp.addEventListener("click", () => moveItemByOffset(item.id, -1));
 moveDown.addEventListener("click", () => moveItemByOffset(item.id, 1));

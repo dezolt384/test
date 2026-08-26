@@ -225,6 +225,7 @@ renderAuthorSuggestions();
 elements.itemDate.value = item.date || state.selectedDate;
 elements.itemSlot.value = getBand(item.slot).id;
 renderBandOptions();
+elements.itemPublication.value = item.status === "pubblicato" ? "pubblicato" : "idea";
 elements.itemTag.value = formatTags(item.tags || []);
 if (options.mode === "move") elements.itemDate.focus({ preventScroll: true });
 else elements.itemTitle.focus({ preventScroll: true });
@@ -261,6 +262,7 @@ elements.itemId.value = "";
 elements.itemDate.value = state.selectedDate;
 renderBandOptions();
 elements.itemAuthor.value = "";
+elements.itemPublication.value = "idea";
 elements.itemTag.value = "";
 elements.formTitle.textContent = "Nuovo contenuto";
 }
@@ -270,6 +272,16 @@ pushHistory({ itemIds: [id] });
 state.items = state.items.filter((item) => item.id !== id);
 commitState();
 showToast("Contenuto eliminato");
+}
+
+function setItemPublication(id, isPublished) {
+const item = state.items.find((entry) => entry.id === id);
+const nextStatus = isPublished ? "pubblicato" : "idea";
+if (!item || item.status === nextStatus) return;
+pushHistory({ itemIds: [id] });
+item.status = nextStatus;
+commitState();
+showToast(isPublished ? "Contenuto segnato come pubblicato" : "Contenuto segnato come non pubblicato");
 }
 
 function changeWeek(delta) {

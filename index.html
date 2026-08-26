@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Programmazione redazione</title>
     <link rel="stylesheet" href="./styles.css?v=author-field1" />
-    <link rel="stylesheet" href="./extra.css?v=context-menu-front1" />
+    <link rel="stylesheet" href="./extra.css?v=publication-controls1" />
     <link rel="stylesheet" href="./team.css?v=mobile-header1" />
     <link rel="stylesheet" href="./print.css?v=print-week7" />
   </head>
@@ -123,6 +123,14 @@
                 </label>
               </div>
 
+              <label>
+                Pubblicazione
+                <select id="itemPublication">
+                  <option value="idea">Non pubblicato</option>
+                  <option value="pubblicato">Pubblicato</option>
+                </select>
+              </label>
+
               <div class="form-grid form-grid-single">
                 <label>
                   Tag
@@ -131,6 +139,7 @@
               </div>
 
               <div class="form-actions">
+                <button class="icon-button" type="button" id="closeEditorBottom" aria-label="Chiudi senza salvare" title="Chiudi senza salvare">x</button>
                 <button class="secondary-button" type="button" id="resetForm">Svuota</button>
                 <button class="primary-button" type="submit">Salva</button>
               </div>
@@ -184,6 +193,8 @@
             <button class="mini-button edit-button" type="button">Modifica</button>
             <button class="mini-button history-detail-button" type="button">Cronologia</button>
             <button class="mini-button delete-button" type="button">Elimina</button>
+            <button class="mini-button publish-button" type="button">Pubblicato</button>
+            <button class="mini-button unpublish-button" type="button">Non pubblicato</button>
           </div>
         </div>
       </article>
@@ -300,7 +311,7 @@
 
     <script src="./team.js?v=team-mosaic1"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="./loader.js?v=author-field1"></script>
+    <script src="./loader.js?v=editor-bottom-close1"></script>
     <script src="./mobile.js?v=mobile-default1"></script>
     <script src="./print.js?v=print-week6"></script>
   </body>
