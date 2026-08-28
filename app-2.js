@@ -334,6 +334,9 @@ context.appendChild(createBandChip(item.slot, item.date));
 if (options.showDate) {
 context.appendChild(createDateChip(item.date));
 }
+if (options.showRelativeDate) {
+context.insertBefore(createRelativeDateChip(item.date), context.firstChild);
+}
 const contentFormat = getContentFormat(item);
 if (contentFormat) formatRow.appendChild(createContentFormatTag(contentFormat));
 const title = fragment.querySelector("h3");

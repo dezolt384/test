@@ -769,6 +769,50 @@
   font-size: 20px;
 }
 
+.archive-period-switch {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  gap: 4px;
+  margin: 0 14px 12px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+}
+
+.archive-period-button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 14px;
+  color: var(--muted);
+  background: transparent;
+  font-weight: 820;
+}
+
+.archive-period-button:hover {
+  color: var(--ink);
+}
+
+.archive-period-button.is-active {
+  color: var(--teal);
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(21, 32, 51, .1);
+}
+
+.relative-date-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  border-radius: 999px;
+  padding: 0 7px;
+  color: #fff;
+  background: var(--teal);
+  font-size: 10px;
+  font-weight: 850;
+}
+
 .archive-load-more {
   justify-self: center;
   min-width: min(280px, 100%);

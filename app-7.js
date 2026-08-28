@@ -49,6 +49,7 @@ if (!state.loadedRanges) state.loadedRanges = [];
 if (!state.availableYears) state.availableYears = [];
 if (!state.pendingRemoteItemIds) state.pendingRemoteItemIds = new Set();
 if (!state.archiveCache) state.archiveCache = new Map();
+if (!state.archivePeriods) state.archivePeriods = {};
 if (!state.searchState) state.searchState = null;
 if (!state.pendingHistory) state.pendingHistory = null;
 if (typeof state.remoteConfigDirty !== "boolean") state.remoteConfigDirty = false;
@@ -634,27 +635,73 @@ filter: "(slot.eq.riunioni)",
 };
 }
 
+function getContentArchivePeriod(view = state.view) {
+ensureHotPathState();
+return state.archivePeriods[view] === "past" ? "past" : "upcoming";
+}
+
+function getContentArchiveCacheKey(view, period = getContentArchivePeriod(view)) {
+return `${view}:${period}`;
+}
+
+function setContentArchivePeriod(view, period) {
+ensureHotPathState();
+state.archivePeriods[view] = period === "past" ? "past" : "upcoming";
+render();
+}
+
+function createContentArchivePeriodSwitch(view, period) {
+const controls = document.createElement("div");
+controls.className = "archive-period-switch";
+controls.setAttribute("role", "group");
+controls.setAttribute("aria-label", "Periodo da consultare");
+[
+{ id: "upcoming", label: "In arrivo" },
+{ id: "past", label: "Passati" },
+].forEach((option) => {
+const button = document.createElement("button");
+button.type = "button";
+button.className = "archive-period-button";
+button.classList.toggle("is-active", option.id === period);
+button.setAttribute("aria-pressed", option.id === period ? "true" : "false");
+button.textContent = option.label;
+button.addEventListener("click", () => setContentArchivePeriod(view, option.id));
+controls.appendChild(button);
+});
+return controls;
+}
+
 async function loadContentArchivePage(view, reset = false) {
 ensureHotPathState();
 const spec = getArchiveSpec(view);
-const current = reset || !state.archiveCache.has(view)
+const period = getContentArchivePeriod(view);
+const cacheKey = getContentArchiveCacheKey(view, period);
+const today = toISO(new Date());
+const periodPredicate = period === "past"
+? (item) => item.date < today
+: (item) => item.date >= today;
+const periodSorter = period === "past"
+? (a, b) => b.date.localeCompare(a.date) || compareItems(a, b)
+: (a, b) => a.date.localeCompare(b.date) || compareItems(a, b);
+const current = reset || !state.archiveCache.has(cacheKey)
 ? { items: [], total: 0, offset: 0, loading: true }
-: state.archiveCache.get(view);
+: state.archiveCache.get(cacheKey);
 if (current.loading && !reset && current.items.length) return;
 current.loading = true;
-state.archiveCache.set(view, current);
+state.archiveCache.set(cacheKey, current);
 if (state.view === view) render();
 try {
 if (view === "meetings") {
 await ensureFullArchiveLoaded();
 const allMeetings = state.items
 .filter(spec.predicate)
-.sort((a, b) => b.date.localeCompare(a.date) || compareItems(a, b));
+.filter(periodPredicate)
+.sort(periodSorter);
 const offset = reset ? 0 : current.offset;
 const nextItems = allMeetings.slice(offset, offset + HOT_PAGE_SIZE);
 const byId = new Map((reset ? [] : current.items).map((item) => [item.id, item]));
 nextItems.forEach((item) => byId.set(item.id, item));
-state.archiveCache.set(view, {
+state.archiveCache.set(cacheKey, {
 items: [...byId.values()],
 total: allMeetings.length,
 offset: offset + nextItems.length,
@@ -666,9 +713,14 @@ return;
 const url = new URL(`${SUPABASE_REST_URL}/contents`);
 url.searchParams.set("select", CONTENT_SELECT_FIELDS);
 url.searchParams.set("deleted_at", "is.null");
+if (period === "past") {
 url.searchParams.set("content_date", `gte.${ACTIVE_DATA_START}`);
+url.searchParams.append("content_date", `lt.${today}`);
+} else {
+url.searchParams.set("content_date", `gte.${today}`);
+}
 url.searchParams.set("or", spec.filter);
-url.searchParams.set("order", "content_date.desc,sort_order.asc,id.asc");
+url.searchParams.set("order", `content_date.${period === "past" ? "desc" : "asc"},sort_order.asc,id.asc`);
 const headers = remoteHeaders(
 { Accept: "application/json" },
 { auth: Boolean(getValidAuthSession()?.access_token) },
@@ -678,7 +730,7 @@ const nextItems = page.rows.map(rowToItem);
 mergeConcurrentRows(page.rows);
 const byId = new Map((reset ? [] : current.items).map((item) => [item.id, item]));
 nextItems.forEach((item) => byId.set(item.id, item));
-state.archiveCache.set(view, {
+state.archiveCache.set(cacheKey, {
 items: [...byId.values()],
 total: Number.isFinite(page.total) ? page.total : byId.size,
 offset: (reset ? 0 : current.offset) + page.rows.length,
@@ -690,7 +742,7 @@ if (state.view === view) render();
 console.warn(`Archivio ${view} non disponibile`, error);
 current.loading = false;
 current.error = true;
-state.archiveCache.set(view, current);
+state.archiveCache.set(cacheKey, current);
 if (state.view === view) render();
 }
 }
@@ -702,9 +754,11 @@ renderLocalContentArchive(title, predicate);
 return;
 }
 const view = state.view;
-const cache = state.archiveCache.get(view);
+const period = getContentArchivePeriod(view);
+const cacheKey = getContentArchiveCacheKey(view, period);
+const cache = state.archiveCache.get(cacheKey);
 if (!cache) {
-state.archiveCache.set(view, { items: [], total: 0, offset: 0, loading: true });
+state.archiveCache.set(cacheKey, { items: [], total: 0, offset: 0, loading: true });
 loadContentArchivePage(view, true);
 renderEmpty("Caricamento archivio...");
 return;
@@ -720,31 +774,37 @@ return;
 
 const weekSet = new Set(getWeekDays().map((day) => toISO(day)));
 const weekCount = getRenderItemsForDates([...weekSet]).filter(predicate).length;
-const items = [...cache.items].sort((a, b) => b.date.localeCompare(a.date) || compareItems(a, b));
+const items = [...cache.items].sort(period === "past"
+? (a, b) => b.date.localeCompare(a.date) || compareItems(a, b)
+: (a, b) => a.date.localeCompare(b.date) || compareItems(a, b));
 const wrapper = document.createElement("div");
 wrapper.className = "group-view content-archive";
 const header = document.createElement("div");
 header.className = "archive-header content-archive-header";
 header.innerHTML = `
-<div><span>Archivio contenuti</span><strong>${escapeHtml(title)}</strong></div>
+<div><span>${period === "past" ? "Archivio" : "Prossimi contenuti"}</span><strong>${escapeHtml(title)}</strong></div>
 <div class="content-archive-week"><strong>${weekCount}</strong><span>questa settimana</span></div>
-<em>${cache.total} totali</em>
+<em>${cache.total} ${period === "past" ? "passati" : "in arrivo"}</em>
 `;
 wrapper.appendChild(header);
+wrapper.appendChild(createContentArchivePeriodSwitch(view, period));
 if (!items.length) {
 const empty = document.createElement("div");
 empty.className = "empty-state";
-empty.textContent = "Nessun contenuto in questa vista";
+empty.textContent = period === "past" ? "Nessun contenuto passato" : "Nessun contenuto in arrivo";
 wrapper.appendChild(empty);
 } else {
 const groups = groupBy(items, (item) => item.date.slice(0, 7));
-Object.keys(groups).sort().reverse().forEach((monthKey) => {
+Object.keys(groups).sort(period === "past" ? (a, b) => b.localeCompare(a) : (a, b) => a.localeCompare(b)).forEach((monthKey) => {
 const block = document.createElement("section");
 block.className = "group-block";
 block.innerHTML = `<div class="group-header"><span>${escapeHtml(formatMonth(monthKey))}</span><span>${groups[monthKey].length}</span></div>`;
 const list = document.createElement("div");
 list.className = "group-items";
-groups[monthKey].forEach((item) => list.appendChild(createCard(item, { showDate: true })));
+groups[monthKey].forEach((item) => list.appendChild(createCard(item, {
+showDate: true,
+showRelativeDate: period === "upcoming" && item.id === items[0]?.id,
+})));
 block.appendChild(list);
 wrapper.appendChild(block);
 });
@@ -763,20 +823,30 @@ elements.contentView.appendChild(wrapper);
 }
 
 function renderLocalContentArchive(title, predicate) {
+const view = state.view;
+const period = getContentArchivePeriod(view);
+const today = toISO(new Date());
 const items = currentRenderItems
 .filter(predicate)
-.sort((a, b) => b.date.localeCompare(a.date) || compareItems(a, b));
+.filter((item) => period === "past" ? item.date < today : item.date >= today)
+.sort(period === "past"
+? (a, b) => b.date.localeCompare(a.date) || compareItems(a, b)
+: (a, b) => a.date.localeCompare(b.date) || compareItems(a, b));
 const weekSet = new Set(getWeekDays().map((day) => toISO(day)));
 const wrapper = document.createElement("div");
 wrapper.className = "group-view content-archive";
 wrapper.innerHTML = `
 <div class="archive-header content-archive-header">
-  <div><span>Archivio contenuti</span><strong>${escapeHtml(title)}</strong></div>
+  <div><span>${period === "past" ? "Archivio" : "Prossimi contenuti"}</span><strong>${escapeHtml(title)}</strong></div>
   <div class="content-archive-week"><strong>${items.filter((item) => weekSet.has(item.date)).length}</strong><span>questa settimana</span></div>
-  <em>${items.length} totali</em>
+  <em>${items.length} ${period === "past" ? "passati" : "in arrivo"}</em>
 </div>
 `;
-items.slice(0, HOT_PAGE_SIZE).forEach((item) => wrapper.appendChild(createCard(item, { showDate: true })));
+wrapper.appendChild(createContentArchivePeriodSwitch(view, period));
+items.slice(0, HOT_PAGE_SIZE).forEach((item, index) => wrapper.appendChild(createCard(item, {
+showDate: true,
+showRelativeDate: period === "upcoming" && index === 0,
+})));
 elements.contentView.innerHTML = "";
 elements.contentView.appendChild(wrapper);
 }

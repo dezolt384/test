@@ -172,6 +172,16 @@ chip.textContent = formatFullDate(parseDate(date));
 return chip;
 }
 
+function createRelativeDateChip(date) {
+const chip = document.createElement("span");
+chip.className = "relative-date-chip";
+const today = parseDate(toISO(new Date()));
+const target = parseDate(date);
+const days = Math.round((target.getTime() - today.getTime()) / 86400000);
+chip.textContent = days === 0 ? "Oggi" : days === 1 ? "Domani" : `Tra ${days} giorni`;
+return chip;
+}
+
 function filteredItems() {
 if (!state.query) return state.items;
 return state.items.filter((item) => {

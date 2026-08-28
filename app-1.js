@@ -174,6 +174,10 @@ if (event.key === "Escape") closeActionMenus();
 document.querySelectorAll(".tab").forEach((button) => {
 button.addEventListener("click", () => {
 if (button.dataset.view !== "author") state.authorDetail = "";
+if (["live", "appointments", "meetings"].includes(button.dataset.view)) {
+if (!state.archivePeriods) state.archivePeriods = {};
+state.archivePeriods[button.dataset.view] = "upcoming";
+}
 state.view = button.dataset.view;
 document.querySelectorAll(".tab").forEach((tab) => tab.classList.toggle("is-active", tab === button));
 render();
