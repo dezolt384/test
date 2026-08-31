@@ -1,0 +1,9 @@
+# Backup locali e credenziali operative non devono entrare nel repository.
+.backup-work/
+*.backup.tar.gz
+*.backup.tar.gz.sha256
+*.backup.manifest.json
+.env
+.env.*
+!.env.example
+
