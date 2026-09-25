@@ -497,13 +497,111 @@ form textarea {
 
 .slot-label {
   display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
   align-content: start;
-  gap: 4px;
+  align-items: start;
+  gap: 7px;
   min-height: 150px;
   padding: 12px 10px;
   color: var(--slot-ink);
   background: var(--slot-bg);
   border-left: 5px solid var(--slot-line);
+}
+
+.slot-label-title {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.band-collapse-button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--slot-line) 35%, transparent);
+  border-radius: 6px;
+  color: var(--slot-ink);
+  background: rgba(255, 255, 255, .72);
+  cursor: pointer;
+}
+
+.band-collapse-button:hover,
+.band-collapse-button:focus-visible {
+  border-color: var(--slot-line);
+  outline: 2px solid color-mix(in srgb, var(--slot-line) 32%, transparent);
+  outline-offset: 1px;
+}
+
+.band-collapse-button span {
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translate(-1px, -1px);
+  transition: transform .16s ease;
+}
+
+.week-row.is-collapsed .band-collapse-button span {
+  transform: rotate(-45deg) translate(-1px, -1px);
+}
+
+.week-row.is-collapsed .slot-label {
+  min-height: 42px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.week-row.is-collapsed .slot-cell {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 4px;
+}
+
+.week-row.is-collapsed .slot-cell > * {
+  display: none;
+}
+
+.slot-compact-preview {
+  display: none;
+}
+
+.week-row.is-collapsed .slot-cell .slot-compact-preview {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.slot-compact-preview-line {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border-left: 3px solid var(--slot-line);
+  border-radius: 2px;
+  padding: 2px 4px;
+  color: var(--slot-ink);
+  background: rgba(255, 255, 255, .72);
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1.1;
+}
+
+.slot-compact-preview-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slot-compact-preview-more {
+  flex: 0 0 auto;
+  margin-left: 3px;
+  font-weight: 900;
 }
 
 .slot-label span {

@@ -66,6 +66,7 @@ const loadedItems = loadItems();
 const state = {
 items: loadedItems,
 bands: loadBands(loadedItems),
+collapsedBands: [],
 authors: loadAuthors(),
 bandEditId: "",
 pendingBandRemoval: null,
@@ -362,13 +363,31 @@ visibleBands.forEach((band, bandIndex) => {
 const slot = band.id;
 const row = document.createElement("section");
 row.className = "week-row";
+row.classList.toggle("is-collapsed", state.collapsedBands.includes(slot));
 row.dataset.slot = slot;
 applyBandStyle(row, band, bandIndex);
 
 const label = document.createElement("div");
 label.className = "slot-label";
 label.dataset.slot = slot;
-label.innerHTML = `<span>${escapeHtml(band.top)}</span><strong>${escapeHtml(band.bottom)}</strong>`;
+const toggle = document.createElement("button");
+toggle.type = "button";
+toggle.className = "band-collapse-button";
+toggle.setAttribute("aria-expanded", String(!state.collapsedBands.includes(slot)));
+toggle.setAttribute("aria-label", `${state.collapsedBands.includes(slot) ? "Espandi" : "Compatta"} fascia ${band.title}`);
+toggle.innerHTML = '<span aria-hidden="true"></span>';
+toggle.addEventListener("click", () => {
+  state.collapsedBands = state.collapsedBands.includes(slot)
+    ? state.collapsedBands.filter((id) => id !== slot)
+    : [...state.collapsedBands, slot];
+  render();
+});
+const title = document.createElement("div");
+title.className = "slot-label-title";
+title.innerHTML = band.id === "appuntamento"
+  ? `<strong>${escapeHtml(band.top)}</strong>`
+  : `<span>${escapeHtml(band.top)}</span><strong>${escapeHtml(band.bottom)}</strong>`;
+label.append(toggle, title);
 row.appendChild(label);
 
 weekDays.forEach((day, index) => {
@@ -381,4 +400,28 @@ cell.classList.toggle("is-nonworking-column", isWeekendOrHoliday(day));
 cell.dataset.slot = slot;
 cell.dataset.date = iso;
 cell.innerHTML = `<p class="mobile-day-label">${dayNames[index]} ${day.getDate()} ${monthNames[day.getMonth()]}</p>`;
-setupDropTarget(cell, iso, slot);
+const cellItems = [...getRenderItemsForCell(iso, slot)].sort(compareItems);
+if (cellItems.length) {
+  const preview = document.createElement("div");
+  preview.className = "slot-compact-preview";
+  preview.classList.toggle("has-more", cellItems.length > 1);
+  preview.setAttribute("aria-label", cellItems.length > 1
+    ? "Anteprima dei contenuti presenti; ce ne sono altri"
+    : "Anteprima dei contenuti presenti");
+  const line = document.createElement("span");
+  line.className = "slot-compact-preview-line";
+  const text = document.createElement("span");
+  text.className = "slot-compact-preview-text";
+  text.textContent = String(cellItems[0].title || "").replace(/\s+/g, " ").trim();
+  text.title = cellItems[0].title || "";
+  line.appendChild(text);
+  if (cellItems.length > 1) {
+    const more = document.createElement("span");
+    more.className = "slot-compact-preview-more";
+    more.textContent = "…";
+    line.appendChild(more);
+  }
+  preview.appendChild(line);
+  cell.appendChild(preview);
+}
+if (!state.collapsedBands.includes(slot)) setupDropTarget(cell, iso, slot);
